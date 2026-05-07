@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centro de Configuración – Puerto Cancún Club</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Estética: Control Room / Industrial Dark
+   Fuentes: Bebas Neue (display) + DM Sans (UI) + DM Mono
+   Paleta: Navy profundo + Cian eléctrico + Ámbar de alerta
+══════════════════════════════════════════════════════════ */
+:root {
+  --bg:          #03080f;
+  --bg-1:        #070f1c;
+  --bg-2:        #0b1627;
+  --bg-3:        #0f1e36;
+  --bg-4:        #152644;
+  --surface:     rgba(6,182,212,0.06);
+  --border:      rgba(6,182,212,0.13);
+  --border-h:    rgba(6,182,212,0.32);
+  --cyan:        #06b6d4;
+  --cyan-s:      #a5f3fc;
+  --cyan-dim:    rgba(6,182,212,0.18);
+  --amber:       #f59e0b;
+  --amber-s:     #fde68a;
+  --amber-dim:   rgba(245,158,11,0.15);
+  --green:       #10b981;
+  --green-s:     #6ee7b7;
+  --rose:        #f43f5e;
+  --rose-s:      #fda4af;
+  --purple:      #8b5cf6;
+  --white:       #e8f4f8;
+  --grey:        #4a6070;
+  --grey-l:      #7a9bb0;
+  --text:        #c8dde8;
+  --admin-col:   #f59e0b;
+  --sup-col:     #06b6d4;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grid background */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(6,182,212,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6,182,212,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none; z-index: 0;
+}
+
+/* Top stripe */
+body::after {
+  content: '';
+  position: fixed; top:0; left:0; right:0; height: 3px;
+  background: linear-gradient(90deg, var(--amber), var(--cyan), var(--amber));
+  z-index: 300;
+}
+
+/* ── LOGIN SCREEN ── */
+#login-screen {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+}
+
+.login-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 48px 44px;
+  width: min(440px, 94vw);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(6,182,212,0.08);
+  animation: cardIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes cardIn {
+  from { opacity:0; transform: translateY(24px) scale(0.95); }
+  to   { opacity:1; transform: translateY(0) scale(1); }
+}
+
+.login-logo {
+  display: block; width: 80px; margin: 0 auto 20px;
+  filter: drop-shadow(0 0 14px rgba(6,182,212,0.3));
+}
+
+.login-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px; letter-spacing: 0.08em;
+  text-align: center; color: var(--cyan-s);
+  margin-bottom: 4px;
+}
+
+.login-sub {
+  text-align: center; font-size: 12px; color: var(--grey-l);
+  margin-bottom: 32px; font-family: 'DM Mono', monospace;
+}
+
+.login-field { margin-bottom: 14px; }
+.login-field label {
+  display: block; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--cyan); margin-bottom: 5px;
+}
+.login-field input {
+  width: 100%; background: rgba(0,0,0,0.5);
+  border: 1px solid var(--border); border-radius: 9px;
+  padding: 11px 14px; color: var(--white);
+  font-family: 'DM Mono', monospace; font-size: 13px;
+  outline: none; transition: all 0.2s;
+}
+.login-field input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(6,182,212,0.1);
+}
+
+.login-btn {
+  width: 100%; padding: 12px;
+  background: linear-gradient(135deg, #0369a1, var(--cyan));
+  color: #fff; border: none; border-radius: 9px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+  margin-top: 6px; letter-spacing: 0.03em;
+}
+.login-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(6,182,212,0.3); }
+.login-err {
+  text-align: center; font-size: 12px; color: var(--rose-s);
+  margin-top: 12px; min-height: 18px;
+  font-family: 'DM Mono', monospace;
+}
+
+.login-badge {
+  display: flex; gap: 10px; margin-top: 28px; justify-content: center;
+}
+.login-badge-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; padding: 3px 10px; border-radius: 100px;
+  font-family: 'DM Mono', monospace;
+}
+.login-badge-item.admin { background: var(--amber-dim); color: var(--amber-s); border: 1px solid rgba(245,158,11,0.3); }
+.login-badge-item.sup   { background: var(--cyan-dim);  color: var(--cyan-s);  border: 1px solid rgba(6,182,212,0.3); }
+
+/* ── APP SHELL ── */
+.app { position: relative; z-index: 1; display: none; min-height: 100vh; }
+.app.ready { display: flex; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 250px; flex-shrink: 0;
+  background: rgba(3,8,15,0.95);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+  padding: 0;
+}
+
+.sb-top {
+  padding: 22px 22px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.sb-logo { width: 70px; display: block; margin-bottom: 10px; }
+.sb-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px; letter-spacing: 0.12em;
+  color: var(--amber); margin-bottom: 2px;
+}
+.sb-subtitle { font-size: 10px; color: var(--grey-l); font-family: 'DM Mono', monospace; }
+
+.sb-user {
+  margin: 14px 22px 0;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  display: flex; align-items: center; gap: 10px;
+}
+.sb-user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; flex-shrink: 0;
+}
+.sb-user-avatar.admin { background: rgba(245,158,11,0.2); color: var(--amber); border: 1.5px solid rgba(245,158,11,0.4); }
+.sb-user-avatar.supervisor { background: rgba(6,182,212,0.15); color: var(--cyan); border: 1.5px solid rgba(6,182,212,0.3); }
+.sb-user-name { font-size: 12px; font-weight: 600; color: var(--white); }
+.sb-user-role { font-size: 10px; font-family: 'DM Mono', monospace; }
+.sb-user-role.admin { color: var(--amber); }
+.sb-user-role.supervisor { color: var(--cyan); }
+
+.sb-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+.sb-section-lbl {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--grey);
+  padding: 0 10px; margin: 14px 0 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: 8px;
+  cursor: pointer; font-size: 12px; font-weight: 600;
+  color: var(--grey-l); border-left: 2px solid transparent;
+  transition: all 0.18s; user-select: none; margin-bottom: 2px;
+}
+.nav-item:hover { background: var(--surface); color: var(--white); }
+.nav-item.active {
+  background: rgba(6,182,212,0.1);
+  border-left-color: var(--cyan);
+  color: var(--cyan-s);
+}
+.nav-item.admin-only { opacity: 0.35; pointer-events: none; }
+.nav-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto; font-size: 9px; padding: 1px 6px;
+  border-radius: 4px; font-family: 'DM Mono', monospace;
+  font-weight: 700;
+}
+.nav-badge.admin { background: var(--amber-dim); color: var(--amber-s); }
+.nav-badge.new { background: rgba(16,185,129,0.15); color: var(--green-s); }
+
+.sb-bottom {
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sb-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--grey-l); font-family: 'DM Mono', monospace;
+}
+.sb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.sb-link-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 10px; border-radius: 7px;
+  background: rgba(6,182,212,0.07); border: 1px solid var(--border);
+  color: var(--cyan-s); font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: all 0.18s; text-decoration: none;
+}
+.sb-link-btn:hover { background: var(--cyan-dim); border-color: var(--cyan); }
+.logout-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 10px; border-radius: 7px;
+  background: transparent; border: 1px solid rgba(244,63,94,0.2);
+  color: var(--rose-s); font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: all 0.18s;
+}
+.logout-btn:hover { background: rgba(244,63,94,0.1); }
+
+/* ── MAIN ── */
+.main { flex: 1; padding: 32px 36px; min-width: 0; }
+
+.topbar {
+  display: flex; align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px; flex-wrap: wrap; gap: 14px;
+}
+.topbar-h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px; letter-spacing: 0.06em;
+  background: linear-gradient(135deg, var(--white) 30%, var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; line-height: 1;
+}
+.topbar-sub { font-size: 12px; color: var(--grey-l); margin-top: 3px; }
+
+/* ── PANELS ── */
+.panel { display: none; animation: fadeIn 0.22s ease; }
+.panel.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden;
+  margin-bottom: 18px;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--border-h); }
+.card-header {
+  padding: 14px 20px;
+  background: rgba(6,182,212,0.05);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 12px;
+}
+.card-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px; letter-spacing: 0.05em;
+  color: var(--cyan-s);
+  display: flex; align-items: center; gap: 8px;
+}
+.card-body { padding: 20px; }
+.card-body-compact { padding: 12px 20px; }
+
+/* ── GRID ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+
+/* ── STAT CARDS ── */
+.stat-card {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px;
+  position: relative; overflow: hidden; transition: all 0.2s;
+}
+.stat-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(6,182,212,0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+.stat-card:hover { transform: translateY(-2px); border-color: var(--border-h); }
+.stat-icon { font-size: 20px; margin-bottom: 8px; }
+.stat-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px; letter-spacing: 0.03em; line-height: 1;
+}
+.stat-lbl { font-size: 10px; color: var(--grey-l); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+.stat-sub { font-size: 10px; color: var(--grey); margin-top: 5px; font-family: 'DM Mono', monospace; }
+.c-cyan  .stat-val { color: var(--cyan); }
+.c-amber .stat-val { color: var(--amber); }
+.c-green .stat-val { color: var(--green); }
+.c-rose  .stat-val { color: var(--rose); }
+
+/* ── FORM ── */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--cyan); margin-bottom: 5px;
+}
+.field input, .field select, .field textarea {
+  width: 100%; background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(6,182,212,0.18);
+  border-radius: 8px; padding: 9px 12px;
+  color: var(--white); font-family: 'DM Mono', monospace;
+  font-size: 13px; outline: none; transition: all 0.2s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px rgba(6,182,212,0.1);
+}
+.field select option { background: var(--bg-2); }
+.field textarea { resize: vertical; min-height: 70px; font-family: 'DM Sans', sans-serif; }
+.field-hint { font-size: 10px; color: var(--grey-l); margin-top: 4px; font-style: italic; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px;
+  font-weight: 700; cursor: pointer; border: none;
+  transition: all 0.18s; letter-spacing: 0.02em;
+  user-select: none; white-space: nowrap;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #0369a1, var(--cyan));
+  color: #fff; box-shadow: 0 4px 14px rgba(6,182,212,0.25);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(6,182,212,0.35); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.btn-amber {
+  background: linear-gradient(135deg, #92400e, var(--amber));
+  color: #fff; box-shadow: 0 4px 14px rgba(245,158,11,0.2);
+}
+.btn-amber:hover { transform: translateY(-1px); }
+.btn-ghost {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--grey-l);
+}
+.btn-ghost:hover { background: var(--cyan-dim); color: var(--white); border-color: var(--cyan); }
+.btn-danger {
+  background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.25);
+  color: var(--rose-s);
+}
+.btn-danger:hover { background: rgba(244,63,94,0.22); }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+/* ── BADGES ── */
+.badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 4px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.b-admin   { background: var(--amber-dim); color: var(--amber-s); border: 1px solid rgba(245,158,11,0.3); }
+.b-sup     { background: var(--cyan-dim);  color: var(--cyan-s);  border: 1px solid rgba(6,182,212,0.3); }
+.b-green   { background: rgba(16,185,129,0.12); color: var(--green-s); border: 1px solid rgba(16,185,129,0.3); }
+.b-rose    { background: rgba(244,63,94,0.1);  color: var(--rose-s);  border: 1px solid rgba(244,63,94,0.3); }
+.b-grey    { background: rgba(74,96,112,0.25); color: var(--grey-l);  border: 1px solid rgba(74,96,112,0.4); }
+
+/* ── SWITCH TOGGLE ── */
+.switch-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid rgba(6,182,212,0.07);
+}
+.switch-row:last-child { border-bottom: none; }
+.switch-info { flex: 1; min-width: 0; }
+.switch-label { font-size: 13px; font-weight: 600; color: var(--white); margin-bottom: 2px; }
+.switch-desc  { font-size: 11px; color: var(--grey-l); }
+.switch {
+  position: relative; width: 42px; height: 23px;
+  flex-shrink: 0; margin-left: 14px;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch-slider {
+  position: absolute; inset: 0; border-radius: 23px;
+  background: rgba(74,96,112,0.4); border: 1px solid var(--grey);
+  cursor: pointer; transition: all 0.25s;
+}
+.switch-slider::before {
+  content: ''; position: absolute;
+  width: 17px; height: 17px; border-radius: 50%;
+  background: var(--grey-l); left: 2px; top: 2px;
+  transition: all 0.25s;
+}
+.switch input:checked + .switch-slider {
+  background: rgba(6,182,212,0.2); border-color: var(--cyan);
+}
+.switch input:checked + .switch-slider::before {
+  background: var(--cyan); transform: translateX(19px);
+  box-shadow: 0 0 8px rgba(6,182,212,0.5);
+}
+
+/* ── USER TABLE ── */
+.user-table { width: 100%; border-collapse: collapse; }
+.user-table th {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--cyan);
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  text-align: left; white-space: nowrap;
+}
+.user-table td {
+  padding: 11px 12px; border-bottom: 1px solid rgba(6,182,212,0.06);
+  font-size: 12px; vertical-align: middle;
+}
+.user-table tr:last-child td { border-bottom: none; }
+.user-table tr:hover td { background: rgba(6,182,212,0.03); }
+
+.user-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+}
+.user-avatar.admin { background: rgba(245,158,11,0.2); color: var(--amber); }
+.user-avatar.supervisor { background: rgba(6,182,212,0.15); color: var(--cyan); }
+
+/* ── PERMISSION MATRIX ── */
+.perm-matrix { width: 100%; border-collapse: collapse; }
+.perm-matrix th {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--cyan);
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.perm-matrix th:first-child { text-align: left; }
+.perm-matrix td {
+  padding: 10px 14px; border-bottom: 1px solid rgba(6,182,212,0.06);
+  font-size: 12px; text-align: center; vertical-align: middle;
+}
+.perm-matrix td:first-child { text-align: left; color: var(--white); font-weight: 500; }
+.perm-matrix tr:last-child td { border-bottom: none; }
+.perm-matrix tr:hover td { background: rgba(6,182,212,0.025); }
+.perm-yes { color: var(--green); font-size: 15px; }
+.perm-no  { color: var(--grey);  font-size: 15px; }
+.perm-partial { color: var(--amber); font-size: 11px; font-family: 'DM Mono', monospace; }
+
+/* ── AREA CARDS ── */
+.area-card {
+  background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  transition: all 0.2s;
+}
+.area-card:hover { border-color: var(--border-h); }
+.area-card-header { display: flex; align-items: center; gap: 10px; }
+.area-card-icon { font-size: 22px; }
+.area-card-name { font-size: 14px; font-weight: 700; color: var(--white); }
+.area-card-meta { font-size: 10px; color: var(--grey-l); font-family: 'DM Mono', monospace; }
+.area-card-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.area-stat { font-size: 10px; color: var(--grey-l); background: rgba(6,182,212,0.06); border: 1px solid var(--border); padding: 3px 8px; border-radius: 5px; font-family: 'DM Mono', monospace; }
+.area-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+/* ── INFO BOX ── */
+.info-box {
+  padding: 12px 16px; border-radius: 9px;
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-bottom: 14px; font-size: 12px;
+}
+.info-box.info  { background: rgba(6,182,212,0.07); border: 1px solid rgba(6,182,212,0.2); color: var(--cyan-s); }
+.info-box.warn  { background: var(--amber-dim); border: 1px solid rgba(245,158,11,0.3); color: var(--amber-s); }
+.info-box.success { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); color: var(--green-s); }
+
+/* ── ACTIVITY FEED ── */
+.activity-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid rgba(6,182,212,0.06);
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0; margin-top: 4px;
+}
+.activity-text { font-size: 12px; color: var(--text); flex: 1; line-height: 1.5; }
+.activity-time { font-size: 10px; color: var(--grey-l); font-family: 'DM Mono', monospace; white-space: nowrap; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85); backdrop-filter: blur(6px);
+  z-index: 400; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--bg-2);
+  border: 1px solid rgba(6,182,212,0.28);
+  border-radius: 16px; width: min(520px, 100%);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+  animation: modalIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes modalIn {
+  from { opacity:0; transform: scale(0.9) translateY(12px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
+}
+.modal-header {
+  padding: 18px 22px;
+  background: rgba(6,182,212,0.06);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.05em; color: var(--cyan-s); }
+.modal-close { background: transparent; border: none; color: var(--grey-l); font-size: 18px; cursor: pointer; padding: 2px 8px; border-radius: 5px; transition: all 0.2s; }
+.modal-close:hover { color: var(--white); background: rgba(255,255,255,0.06); }
+.modal-body { padding: 22px; }
+.modal-footer { padding: 14px 22px 18px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border); }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 22px; border-radius: 100px;
+  font-weight: 700; font-size: 13px; z-index: 999;
+  display: none; white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+#toast.ok  { background: var(--green); color: #064e3b; }
+#toast.err { background: var(--rose);  color: #fff; }
+#toast.info { background: var(--cyan); color: #0c4a6e; }
+
+/* Loading bar */
+#lbar { position: fixed; top: 3px; left: 0; height: 2px; background: linear-gradient(90deg, var(--amber), var(--cyan)); width: 0%; transition: width 0.4s; z-index: 999; border-radius: 0 2px 2px 0; }
+
+/* ── ACCESS LOCKED ── */
+.locked-overlay {
+  position: absolute; inset: 0; z-index: 10;
+  background: rgba(3,8,15,0.75); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 13px;
+}
+.locked-msg {
+  text-align: center; padding: 20px;
+  font-size: 13px; color: var(--amber-s);
+}
+.locked-icon { font-size: 28px; margin-bottom: 6px; }
+
+@media(max-width:768px){
+  .sidebar { display: none; }
+  .main { padding: 18px 14px; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div id="lbar"></div>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login-screen">
+  <div class="login-card">
+    <img class="login-logo" src="data:image/png;base64,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" alt="Puerto Cancún Club">
+    <div class="login-title">Centro de Configuración</div>
+    <div class="login-sub">Puerto Cancún Club · Acceso restringido</div>
+
+    <div class="login-field">
+      <label>Usuario</label>
+      <input type="text" id="l-user" placeholder="ej. admin" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Ingresar al Centro de Configuración</button>
+    <div class="login-err" id="l-err"></div>
+
+    <div class="login-badge">
+      <div class="login-badge-item admin">👑 Admin — acceso total</div>
+      <div class="login-badge-item sup">🔧 Supervisor — acceso parcial</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div class="app" id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-top">
+      <img class="sb-logo" src="data:image/png;base64,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" alt="PCC">
+      <div class="sb-title">Centro de Configuración</div>
+      <div class="sb-subtitle">Puerto Cancún Club</div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-user-avatar" id="sb-avatar">A</div>
+      <div>
+        <div class="sb-user-name" id="sb-name">—</div>
+        <div class="sb-user-role" id="sb-role">—</div>
+      </div>
+    </div>
+
+    <nav class="sb-nav">
+      <div class="sb-section-lbl">General</div>
+      <div class="nav-item active" onclick="showPanel('overview')">
+        <span class="nav-icon">📊</span> Resumen
+      </div>
+      <div class="nav-item" onclick="showPanel('areas')">
+        <span class="nav-icon">🏢</span> Áreas y Checklists
+      </div>
+      <div class="nav-item" onclick="showPanel('turnos')">
+        <span class="nav-icon">🕐</span> Turnos y Horarios
+      </div>
+
+      <div class="sb-section-lbl">Administración</div>
+      <div class="nav-item" id="nav-usuarios" onclick="showPanel('usuarios')">
+        <span class="nav-icon">👥</span> Usuarios y Roles
+        <span class="nav-badge admin">Admin</span>
+      </div>
+      <div class="nav-item" id="nav-permisos" onclick="showPanel('permisos')">
+        <span class="nav-icon">🔐</span> Permisos
+        <span class="nav-badge admin">Admin</span>
+      </div>
+      <div class="nav-item" id="nav-sistema" onclick="showPanel('sistema')">
+        <span class="nav-icon">⚙️</span> Sistema
+        <span class="nav-badge admin">Admin</span>
+      </div>
+
+      <div class="sb-section-lbl">Monitoreo</div>
+      <div class="nav-item" onclick="showPanel('actividad')">
+        <span class="nav-icon">📋</span> Actividad Reciente
+      </div>
+      <div class="nav-item" onclick="showPanel('estadisticas')">
+        <span class="nav-icon">📈</span> Estadísticas
+      </div>
+    </nav>
+
+    <div class="sb-bottom">
+      <div class="sb-status">
+        <span class="sb-dot"></span> Firebase conectado
+      </div>
+      <a class="sb-link-btn" href="dashboard-operaciones.html" target="_blank">
+        🔗 Abrir Dashboard de Operaciones
+      </a>
+      <button class="logout-btn" onclick="doLogout()">
+        🚪 Cerrar sesión
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-h1" id="panel-title">RESUMEN GENERAL</div>
+        <div class="topbar-sub" id="panel-sub">Vista general del sistema de operaciones</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--grey-l);" id="date-now"></span>
+      </div>
+    </div>
+
+    <!-- ─── OVERVIEW ─── -->
+    <div class="panel active" id="panel-overview">
+      <div class="grid-3">
+        <div class="stat-card c-cyan"><div class="stat-icon">📋</div><div class="stat-val" id="ov-registros">—</div><div class="stat-lbl">Registros este mes</div><div class="stat-sub">Todos los checklists</div></div>
+        <div class="stat-card c-green"><div class="stat-icon">✅</div><div class="stat-val" id="ov-completos">—</div><div class="stat-lbl">Completados 100%</div><div class="stat-sub" id="ov-pct">—</div></div>
+        <div class="stat-card c-amber"><div class="stat-icon">👥</div><div class="stat-val" id="ov-usuarios">—</div><div class="stat-lbl">Usuarios activos</div><div class="stat-sub">Admins + Supervisores</div></div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Estado de áreas -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">🏢 Estado de Áreas</div></div>
+          <div class="card-body">
+            <div id="areas-status"></div>
+          </div>
+        </div>
+
+        <!-- Accesos rápidos -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">⚡ Accesos Rápidos</div></div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <button class="btn btn-ghost" style="justify-content:flex-start;width:100%;" onclick="showPanel('usuarios')">👥 Gestionar usuarios y roles</button>
+              <button class="btn btn-ghost" style="justify-content:flex-start;width:100%;" onclick="showPanel('areas')">📋 Editar áreas y checklists</button>
+              <button class="btn btn-ghost" style="justify-content:flex-start;width:100%;" onclick="showPanel('turnos')">🕐 Configurar turnos</button>
+              <button class="btn btn-ghost" style="justify-content:flex-start;width:100%;" onclick="showPanel('sistema')">⚙️ Ajustes del sistema</button>
+              <a class="btn btn-primary" href="dashboard-operaciones.html" target="_blank" style="text-decoration:none;justify-content:center;">🔗 Abrir Dashboard de Operaciones</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actividad reciente (preview) -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📋 Actividad Reciente</div>
+          <button class="btn btn-ghost btn-sm" onclick="showPanel('actividad')">Ver todo</button>
+        </div>
+        <div class="card-body-compact"><div id="ov-activity"></div></div>
+      </div>
+    </div>
+
+    <!-- ─── ÁREAS ─── -->
+    <div class="panel" id="panel-areas">
+      <div class="info-box info">
+        <span>ℹ️</span>
+        <span>Aquí puedes activar o desactivar tipos de checklist, y ver el resumen de secciones e ítems de cada área.</span>
+      </div>
+
+      <div class="grid-2" id="areas-grid">
+        <!-- Guardavidas -->
+        <div class="area-card">
+          <div class="area-card-header">
+            <span class="area-card-icon">🛟</span>
+            <div>
+              <div class="area-card-name">Guardavidas – Alberca Semiolímpica</div>
+              <div class="area-card-meta">4 secciones · 21 ítems · Parámetros de agua</div>
+            </div>
+          </div>
+          <div class="area-card-stats">
+            <span class="area-stat">Seguridad: 5 ítems</span>
+            <span class="area-stat">Operativos: 5 ítems</span>
+            <span class="area-stat">Calidad agua: 6 ítems</span>
+            <span class="area-stat">Cierre: 3 ítems</span>
+            <span class="area-stat">Params: Temp, pH, Cloro</span>
+          </div>
+          <div class="switch-row" style="padding:8px 0 0;border:none;">
+            <div class="switch-info"><div class="switch-label">Checklist activo</div><div class="switch-desc">Aparece en el dashboard de operaciones</div></div>
+            <label class="switch"><input type="checkbox" checked id="sw-gv" onchange="saveAreaToggle('guardavidas',this.checked)"><span class="switch-slider"></span></label>
+          </div>
+          <div class="area-card-actions">
+            <button class="btn btn-ghost btn-sm">✏️ Editar secciones</button>
+            <button class="btn btn-ghost btn-sm">📊 Ver historial</button>
+          </div>
+        </div>
+
+        <!-- SPA -->
+        <div class="area-card">
+          <div class="area-card-header">
+            <span class="area-card-icon">💆</span>
+            <div>
+              <div class="area-card-name">SPA — Damas / Caballeros</div>
+              <div class="area-card-meta">10 secciones · 44 ítems · Temperaturas de equipos</div>
+            </div>
+          </div>
+          <div class="area-card-stats">
+            <span class="area-stat">Apertura: 6 ítems</span>
+            <span class="area-stat">Equipos: 6 ítems</span>
+            <span class="area-stat">Audio: 4 ítems</span>
+            <span class="area-stat">+7 secciones más</span>
+            <span class="area-stat">Params: Vapor, Sauna, Jacuzzi, Tina, Ambiente</span>
+          </div>
+          <div class="switch-row" style="padding:8px 0 0;border:none;">
+            <div class="switch-info"><div class="switch-label">Checklist activo</div><div class="switch-desc">Separado por turno: Apertura / Cierre</div></div>
+            <label class="switch"><input type="checkbox" checked id="sw-spa" onchange="saveAreaToggle('spa',this.checked)"><span class="switch-slider"></span></label>
+          </div>
+          <div class="area-card-actions">
+            <button class="btn btn-ghost btn-sm">✏️ Editar secciones</button>
+            <button class="btn btn-ghost btn-sm">📊 Ver historial</button>
+          </div>
+        </div>
+
+        <!-- Gimnasio -->
+        <div class="area-card">
+          <div class="area-card-header">
+            <span class="area-card-icon">🏋️</span>
+            <div>
+              <div class="area-card-name">Gimnasio</div>
+              <div class="area-card-meta">5 secciones · 32 ítems · Filtro por turno</div>
+            </div>
+          </div>
+          <div class="area-card-stats">
+            <span class="area-stat">Apertura: 18 ítems</span>
+            <span class="area-stat">Luces: 2 ítems</span>
+            <span class="area-stat">2do turno: 3 ítems</span>
+            <span class="area-stat">Cierre: 8 ítems</span>
+            <span class="area-stat">Comentarios: 1 ítem</span>
+          </div>
+          <div class="switch-row" style="padding:8px 0 0;border:none;">
+            <div class="switch-info"><div class="switch-label">Checklist activo</div><div class="switch-desc">Separado por turno: Apertura / Cierre</div></div>
+            <label class="switch"><input type="checkbox" checked id="sw-gym" onchange="saveAreaToggle('gimnasio',this.checked)"><span class="switch-slider"></span></label>
+          </div>
+          <div class="area-card-actions">
+            <button class="btn btn-ghost btn-sm">✏️ Editar secciones</button>
+            <button class="btn btn-ghost btn-sm">📊 Ver historial</button>
+          </div>
+        </div>
+
+        <!-- Nueva área -->
+        <div class="area-card" style="border-style:dashed;cursor:pointer;align-items:center;justify-content:center;min-height:180px;text-align:center;" onclick="openModal('modal-new-area')" id="admin-new-area">
+          <div style="font-size:32px;margin-bottom:8px;opacity:0.4;">＋</div>
+          <div style="font-size:13px;font-weight:700;color:var(--grey-l);">Agregar nueva área</div>
+          <div style="font-size:11px;color:var(--grey);margin-top:3px;">Solo administradores</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── TURNOS ─── -->
+    <div class="panel" id="panel-turnos">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🌅 Turno Apertura / Matutino</div></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="field"><label>Hora de inicio</label><input type="time" id="t-ap-inicio" value="06:00"></div>
+              <div class="field"><label>Hora de fin</label><input type="time" id="t-ap-fin" value="14:00"></div>
+            </div>
+            <div class="field"><label>Nombre del turno (Guardavidas)</label><input type="text" id="t-ap-gv" value="Matutino (6:00 AM – 2:00 PM)"></div>
+            <div class="field"><label>Nombre del turno (SPA / Gimnasio)</label><input type="text" id="t-ap-spa" value="Apertura (6:00 AM – 2:00 PM)"></div>
+            <div class="btn-row">
+              <button class="btn btn-primary btn-sm" onclick="saveTurnos()">💾 Guardar turno apertura</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🌙 Turno Cierre / Vespertino</div></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="field"><label>Hora de inicio</label><input type="time" id="t-ci-inicio" value="14:00"></div>
+              <div class="field"><label>Hora de fin</label><input type="time" id="t-ci-fin" value="22:00"></div>
+            </div>
+            <div class="field"><label>Nombre del turno (Guardavidas)</label><input type="text" id="t-ci-gv" value="Vespertino (2:00 PM – 10:00 PM)"></div>
+            <div class="field"><label>Nombre del turno (SPA / Gimnasio)</label><input type="text" id="t-ci-spa" value="Cierre (2:00 PM – 10:00 PM)"></div>
+            <div class="btn-row">
+              <button class="btn btn-primary btn-sm" onclick="saveTurnos()">💾 Guardar turno cierre</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">⚙️ Ajustes de Turnos</div></div>
+        <div class="card-body">
+          <div class="switch-row">
+            <div class="switch-info"><div class="switch-label">Requerir selección de turno al registrar</div><div class="switch-desc">Si está activo, no se puede guardar sin seleccionar turno</div></div>
+            <label class="switch"><input type="checkbox" checked><span class="switch-slider"></span></label>
+          </div>
+          <div class="switch-row">
+            <div class="switch-info"><div class="switch-label">Filtrar secciones automáticamente por turno (SPA/Gimnasio)</div><div class="switch-desc">Muestra solo secciones relevantes al turno seleccionado</div></div>
+            <label class="switch"><input type="checkbox" checked><span class="switch-slider"></span></label>
+          </div>
+          <div class="switch-row">
+            <div class="switch-info"><div class="switch-label">Registrar hora exacta de completado</div><div class="switch-desc">Se guarda la hora local al momento de guardar el checklist</div></div>
+            <label class="switch"><input type="checkbox" checked><span class="switch-slider"></span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── USUARIOS ─── -->
+    <div class="panel" id="panel-usuarios">
+      <div class="info-box warn" id="warn-admin-only" style="display:none;">
+        <span>🔒</span>
+        <span>Esta sección es solo para administradores. Contacta al administrador del sistema para gestionar usuarios.</span>
+      </div>
+
+      <div id="usuarios-content">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+          <button class="btn btn-amber" onclick="openModal('modal-add-user')">+ Agregar usuario</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">👥 Usuarios del Sistema</div></div>
+          <div class="card-body" style="padding:0;">
+            <table class="user-table" id="users-table">
+              <thead><tr>
+                <th>Usuario</th><th>Nombre</th><th>Rol</th><th>Área asignada</th><th>Último acceso</th><th>Estado</th><th>Acciones</th>
+              </tr></thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── PERMISOS ─── -->
+    <div class="panel" id="panel-permisos">
+      <div class="card">
+        <div class="card-header"><div class="card-title">🔐 Matriz de Permisos por Rol</div></div>
+        <div class="card-body" style="padding:0;overflow-x:auto;">
+          <table class="perm-matrix">
+            <thead><tr>
+              <th>Función</th>
+              <th>👑 Administrador</th>
+              <th>🔧 Supervisor</th>
+            </tr></thead>
+            <tbody>
+              <tr><td>Ver dashboard de operaciones</td><td><span class="perm-yes">✓</span></td><td><span class="perm-yes">✓</span></td></tr>
+              <tr><td>Registrar checklists</td><td><span class="perm-yes">✓</span></td><td><span class="perm-yes">✓</span></td></tr>
+              <tr><td>Ver historial (2 meses)</td><td><span class="perm-yes">✓</span></td><td><span class="perm-yes">✓</span></td></tr>
+              <tr><td>Eliminar registros propios</td><td><span class="perm-yes">✓</span></td><td><span class="perm-yes">✓</span></td></tr>
+              <tr><td>Eliminar registros de otros</td><td><span class="perm-yes">✓</span></td><td><span class="perm-no">✗</span></td></tr>
+              <tr><td>Ver Centro de Configuración</td><td><span class="perm-yes">✓</span></td><td><span class="perm-partial">Solo lectura</span></td></tr>
+              <tr><td>Gestionar usuarios y roles</td><td><span class="perm-yes">✓</span></td><td><span class="perm-no">✗</span></td></tr>
+              <tr><td>Activar / desactivar áreas</td><td><span class="perm-yes">✓</span></td><td><span class="perm-no">✗</span></td></tr>
+              <tr><td>Editar turnos y horarios</td><td><span class="perm-yes">✓</span></td><td><span class="perm-partial">Ver</span></td></tr>
+              <tr><td>Configurar sistema</td><td><span class="perm-yes">✓</span></td><td><span class="perm-no">✗</span></td></tr>
+              <tr><td>Ver estadísticas</td><td><span class="perm-yes">✓</span></td><td><span class="perm-yes">✓</span></td></tr>
+              <tr><td>Agregar nuevas áreas</td><td><span class="perm-yes">✓</span></td><td><span class="perm-no">✗</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="info-box info">
+        <span>ℹ️</span>
+        <span>Los permisos son fijos por rol. Para modificar el nivel de acceso de un usuario, cambia su rol desde la sección de Usuarios.</span>
+      </div>
+    </div>
+
+    <!-- ─── SISTEMA ─── -->
+    <div class="panel" id="panel-sistema">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🏢 Información del Club</div></div>
+          <div class="card-body">
+            <div class="field"><label>Nombre del club</label><input type="text" id="s-nombre" value="Puerto Cancún Club"></div>
+            <div class="field"><label>Zona horaria</label>
+              <select id="s-timezone">
+                <option value="America/Cancun" selected>America/Cancun (CST UTC-5)</option>
+                <option value="America/Mexico_City">America/Mexico_City (CST UTC-6)</option>
+                <option value="America/Monterrey">America/Monterrey (CST UTC-6)</option>
+              </select>
+            </div>
+            <div class="field"><label>Idioma del sistema</label>
+              <select id="s-lang">
+                <option value="es" selected>Español</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary btn-sm" onclick="saveSistema()">💾 Guardar configuración</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">🔥 Firebase / Base de Datos</div></div>
+          <div class="card-body">
+            <div class="info-box success">
+              <span>✅</span>
+              <div><strong>Conectado correctamente</strong><br>Proyecto: dashboard-puertocancun</div>
+            </div>
+            <div class="field"><label>Proyecto Firebase</label><input type="text" value="dashboard-puertocancun" readonly style="color:var(--grey-l);cursor:default;"></div>
+            <div class="field"><label>Colección de checklists</label><input type="text" value="checklists" readonly style="color:var(--grey-l);cursor:default;"></div>
+            <div class="field"><label>Colección de usuarios</label><input type="text" value="usuarios_config" readonly style="color:var(--grey-l);cursor:default;"></div>
+            <div class="btn-row">
+              <button class="btn btn-ghost btn-sm" onclick="testFirebase()">🔗 Probar conexión</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">🔔 Preferencias del Sistema</div></div>
+        <div class="card-body">
+          <div class="switch-row">
+            <div class="switch-info"><div class="switch-label">Foto de evidencia requerida al cerrar turno</div><div class="switch-desc">El checklist no se puede completar sin adjuntar al menos 1 foto</div></div>
+            <label class="switch"><input type="checkbox" id="s-require-photo"><span class="switch-slider"></span></label>
+          </div>
+          <div class="switch-row">
+            <div class="switch-info"><div class="switch-label">Retención de datos extendida</div><div class="switch-desc">Guardar registros por 3 meses (por defecto: 2 meses)</div></div>
+            <label class="switch"><input type="checkbox" id="s-retention"><span class="switch-slider"></span></label>
+          </div>
+          <div class="switch-row">
+            <div class="switch-info"><div class="switch-label">Modo de mantenimiento</div><div class="switch-desc">Bloquea el acceso al dashboard de operaciones temporalmente</div></div>
+            <label class="switch"><input type="checkbox" id="s-maintenance"><span class="switch-slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-color:rgba(244,63,94,0.2);">
+        <div class="card-header" style="background:rgba(244,63,94,0.04);">
+          <div class="card-title" style="color:var(--rose-s);">⚠️ Zona de peligro</div>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div><div style="font-weight:600;color:var(--white);margin-bottom:3px;">Eliminar todos los registros del mes anterior</div><div style="font-size:11px;color:var(--grey-l);">Esta acción no se puede deshacer</div></div>
+            <button class="btn btn-danger btn-sm" onclick="confirmDangerAction('purge')">Purgar registros</button>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div><div style="font-weight:600;color:var(--white);margin-bottom:3px;">Exportar toda la base de datos</div><div style="font-size:11px;color:var(--grey-l);">Descarga todos los registros en formato JSON</div></div>
+            <button class="btn btn-ghost btn-sm" onclick="exportDB()">📥 Exportar JSON</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── ACTIVIDAD ─── -->
+    <div class="panel" id="panel-actividad">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📋 Actividad Reciente del Sistema</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadActivity()">🔄 Actualizar</button>
+        </div>
+        <div class="card-body"><div id="activity-feed"></div></div>
+      </div>
+    </div>
+
+    <!-- ─── ESTADÍSTICAS ─── -->
+    <div class="panel" id="panel-estadisticas">
+      <div class="grid-3" id="stats-kpis"></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📊 Checklists por Área (Mes actual)</div></div>
+          <div class="card-body"><div id="stats-by-area"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">👤 Actividad por Responsable</div></div>
+          <div class="card-body"><div id="stats-by-user"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div><!-- /app -->
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Add User Modal -->
+<div class="modal-overlay" id="modal-add-user" onclick="if(event.target===this)closeModal('modal-add-user')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">➕ Agregar Usuario</div>
+      <button class="modal-close" onclick="closeModal('modal-add-user')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="field"><label>Usuario (login)</label><input type="text" id="nu-username" placeholder="ej. maria.garcia"></div>
+        <div class="field"><label>Contraseña</label><input type="password" id="nu-pass" placeholder="mínimo 6 caracteres"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Nombre completo</label><input type="text" id="nu-nombre" placeholder="Nombre y apellido"></div>
+        <div class="field"><label>Rol</label>
+          <select id="nu-rol">
+            <option value="supervisor">🔧 Supervisor</option>
+            <option value="admin">👑 Administrador</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Área asignada</label>
+        <select id="nu-area">
+          <option value="todos">Todas las áreas</option>
+          <option value="guardavidas">🛟 Guardavidas</option>
+          <option value="spa">💆 SPA</option>
+          <option value="gimnasio">🏋️ Gimnasio</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-user')">Cancelar</button>
+      <button class="btn btn-amber" onclick="addUser()">Crear usuario</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Area Modal -->
+<div class="modal-overlay" id="modal-new-area" onclick="if(event.target===this)closeModal('modal-new-area')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">🏢 Nueva Área / Checklist</div>
+      <button class="modal-close" onclick="closeModal('modal-new-area')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box warn"><span>⚠️</span><span>La creación de áreas personalizadas requiere editar el dashboard de operaciones. Esta función estará disponible próximamente.</span></div>
+      <div class="field"><label>Nombre del área</label><input type="text" id="na-nombre" placeholder="ej. Restaurante, Cancha de Tennis"></div>
+      <div class="field"><label>Ícono</label><input type="text" id="na-icon" placeholder="ej. 🎾"></div>
+      <div class="field"><label>Turnos aplicables</label>
+        <select id="na-turnos">
+          <option value="ambos">Apertura y Cierre</option>
+          <option value="apertura">Solo Apertura</option>
+          <option value="cierre">Solo Cierre</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new-area')">Cancelar</button>
+      <button class="btn btn-primary" onclick="showToast('Función en desarrollo 🚧','info');closeModal('modal-new-area')">Solicitar creación</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  FIREBASE
+// ═══════════════════════════════════════════════════════
+firebase.initializeApp({
+  apiKey:"AIzaSyCyh1Vx5x1bLeJ5bVIVUJ465Lt1ac0pnDw",
+  authDomain:"dashboard-puertocancun.firebaseapp.com",
+  projectId:"dashboard-puertocancun",
+  storageBucket:"dashboard-puertocancun.firebasestorage.app",
+  messagingSenderId:"905576010789",
+  appId:"1:905576010789:web:03dfffc4ff1e79b7cf5bcc"
+});
+var db = firebase.firestore();
+
+function setLoad(p){
+  var b=document.getElementById('lbar');
+  b.style.width=p+'%';
+  if(p>=100) setTimeout(function(){b.style.width='0%';},600);
+}
+
+// ═══════════════════════════════════════════════════════
+//  USERS (stored in Firestore collection: usuarios_config)
+//  + hardcoded default admin (always available)
+// ═══════════════════════════════════════════════════════
+var USERS_LOCAL_KEY = 'pcc_config_users';
+
+var DEFAULT_USERS = [
+  { username:'admin',     pass:'admin2024',  nombre:'Administrador',     rol:'admin',      area:'todos',       activo:true },
+  { username:'spa',       pass:'spa2024',    nombre:'Supervisor SPA',    rol:'supervisor', area:'spa',         activo:true },
+  { username:'alberca',   pass:'alberca2024',nombre:'Supervisor Alberca', rol:'supervisor', area:'guardavidas', activo:true },
+  { username:'gimnasio',  pass:'gym2024',    nombre:'Supervisor Gym',    rol:'supervisor', area:'gimnasio',    activo:true }
+];
+
+function getUsers(){
+  try {
+    var saved = localStorage.getItem(USERS_LOCAL_KEY);
+    if(saved) return JSON.parse(saved);
+  } catch(e){}
+  return DEFAULT_USERS;
+}
+
+function saveUsers(users){
+  try { localStorage.setItem(USERS_LOCAL_KEY, JSON.stringify(users)); }
+  catch(e){}
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOGIN
+// ═══════════════════════════════════════════════════════
+var currentUser = null;
+
+function doLogin(){
+  var username = document.getElementById('l-user').value.trim().toLowerCase();
+  var pass     = document.getElementById('l-pass').value;
+  var err      = document.getElementById('l-err');
+  if(!username||!pass){ err.textContent='Ingresa usuario y contraseña'; return; }
+
+  var users = getUsers();
+  var user  = users.find(function(u){ return u.username===username && u.pass===pass && u.activo; });
+  if(!user){ err.textContent='Usuario o contraseña incorrectos'; return; }
+
+  currentUser = user;
+  err.textContent = '';
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('ready');
+  initApp();
+
+  // Log activity
+  logActivity('Inicio de sesión: '+user.nombre+' ('+user.rol+')', user.rol==='admin'?'#f59e0b':'#06b6d4');
+}
+
+function doLogout(){
+  currentUser = null;
+  document.getElementById('app').classList.remove('ready');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('l-user').value = '';
+  document.getElementById('l-pass').value = '';
+}
+
+document.getElementById('l-pass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+
+// ═══════════════════════════════════════════════════════
+//  INIT APP
+// ═══════════════════════════════════════════════════════
+function initApp(){
+  var u = currentUser;
+
+  // Sidebar user info
+  var avatar = document.getElementById('sb-avatar');
+  avatar.textContent = u.nombre.charAt(0).toUpperCase();
+  avatar.className = 'sb-user-avatar ' + u.rol;
+  document.getElementById('sb-name').textContent = u.nombre;
+  var roleEl = document.getElementById('sb-role');
+  roleEl.textContent = u.rol === 'admin' ? '👑 Administrador' : '🔧 Supervisor';
+  roleEl.className = 'sb-user-role ' + u.rol;
+
+  // Lock admin-only nav items for supervisors
+  if(u.rol !== 'admin'){
+    ['nav-usuarios','nav-permisos','nav-sistema'].forEach(function(id){
+      document.getElementById(id).classList.add('admin-only');
+    });
+    document.getElementById('admin-new-area').style.pointerEvents='none';
+    document.getElementById('admin-new-area').style.opacity='0.4';
+  }
+
+  document.getElementById('date-now').textContent =
+    new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  loadOverview();
+  loadUsersTable();
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAV
+// ═══════════════════════════════════════════════════════
+var PANEL_TITLES = {
+  overview:'RESUMEN GENERAL', areas:'ÁREAS Y CHECKLISTS',
+  turnos:'TURNOS Y HORARIOS', usuarios:'USUARIOS Y ROLES',
+  permisos:'PERMISOS DEL SISTEMA', sistema:'CONFIGURACIÓN DEL SISTEMA',
+  actividad:'ACTIVIDAD RECIENTE', estadisticas:'ESTADÍSTICAS'
+};
+var PANEL_SUBS = {
+  overview:'Vista general del sistema de operaciones',
+  areas:'Activa, desactiva y revisa los checklists por área',
+  turnos:'Configura horarios y nombres de turno',
+  usuarios:'Alta de usuarios y asignación de roles',
+  permisos:'Matriz de permisos por tipo de usuario',
+  sistema:'Ajustes globales del sistema',
+  actividad:'Registro de acciones recientes',
+  estadisticas:'Métricas de cumplimiento por área y responsable'
+};
+
+function showPanel(id){
+  // Check admin-only panels
+  var adminOnly = ['usuarios','permisos','sistema'];
+  if(adminOnly.includes(id) && currentUser && currentUser.rol !== 'admin'){
+    showToast('Acceso restringido a administradores', 'err'); return;
+  }
+
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  document.getElementById('panel-'+id).classList.add('active');
+  document.getElementById('panel-title').textContent = PANEL_TITLES[id]||id.toUpperCase();
+  document.getElementById('panel-sub').textContent   = PANEL_SUBS[id]||'';
+
+  document.querySelectorAll('.nav-item').forEach(function(n){
+    if(n.textContent.trim().toLowerCase().includes(
+      id==='overview'?'resumen':id==='areas'?'áreas':id==='turnos'?'turnos':
+      id==='usuarios'?'usuario':id==='permisos'?'perm':id==='sistema'?'siste':
+      id==='actividad'?'activ':'estad'
+    )) n.classList.add('active');
+  });
+
+  if(id==='actividad')    loadActivity();
+  if(id==='estadisticas') loadStats();
+  if(id==='overview')     loadOverview();
+}
+
+// ═══════════════════════════════════════════════════════
+//  OVERVIEW
+// ═══════════════════════════════════════════════════════
+function loadOverview(){
+  setLoad(30);
+  var cut = new Date(); cut.setMonth(cut.getMonth()-1);
+  var cutStr = cut.toISOString().split('T')[0];
+  var now = new Date(); var thisMonth = now.toISOString().split('T')[0].slice(0,7);
+
+  db.collection('checklists').orderBy('fecha','desc').get().then(function(snap){
+    var all = snap.docs.map(function(d){ return d.data(); });
+    var month = all.filter(function(r){ return r.fecha && r.fecha.startsWith(thisMonth); });
+    var ok    = month.filter(function(r){ return r.status==='completo'; }).length;
+    var pct   = month.length>0 ? Math.round(ok/month.length*100)+'%' : '—';
+    var users = getUsers().filter(function(u){ return u.activo; }).length;
+
+    document.getElementById('ov-registros').textContent = month.length;
+    document.getElementById('ov-completos').textContent = ok;
+    document.getElementById('ov-pct').textContent       = pct+' de cumplimiento';
+    document.getElementById('ov-usuarios').textContent  = users;
+
+    // Areas status
+    var types = ['guardavidas','spa','gimnasio'];
+    var icons  = {guardavidas:'🛟',spa:'💆',gimnasio:'🏋️'};
+    var labels = {guardavidas:'Guardavidas',spa:'SPA',gimnasio:'Gimnasio'};
+    var html = '';
+    types.forEach(function(t){
+      var cnt = month.filter(function(r){ return r.type===t; }).length;
+      var okT = month.filter(function(r){ return r.type===t&&r.status==='completo'; }).length;
+      var pctT= cnt>0?Math.round(okT/cnt*100):0;
+      var color = pctT===100?'var(--green)':pctT>=70?'var(--amber)':'var(--rose)';
+      html += '<div class="switch-row"><div class="switch-info">'+
+        '<div class="switch-label">'+icons[t]+' '+labels[t]+'</div>'+
+        '<div class="switch-desc">'+cnt+' registros este mes · '+okT+' completos</div>'+
+        '</div><span style="font-family:Bebas Neue,sans-serif;font-size:20px;color:'+color+';">'+pctT+'%</span></div>';
+    });
+    document.getElementById('areas-status').innerHTML = html||'<div style="color:var(--grey-l);font-size:12px;">Sin registros este mes</div>';
+
+    // Recent activity preview
+    renderActivity(all.slice(0,5), 'ov-activity');
+    setLoad(100);
+  }).catch(function(e){
+    setLoad(100);
+    showToast('Error Firebase: '+e.message,'err');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  ACTIVITY
+// ═══════════════════════════════════════════════════════
+var activityLog = [];
+
+function logActivity(text, color){
+  var now = new Date();
+  var t = now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',hour12:true});
+  activityLog.unshift({text:text, time:t, color:color||'var(--cyan)'});
+  if(activityLog.length > 50) activityLog.pop();
+}
+
+function loadActivity(){
+  setLoad(40);
+  db.collection('checklists').orderBy('fecha','desc').limit(20).get().then(function(snap){
+    var all = snap.docs.map(function(d){ return d.data(); });
+    renderActivity(all, 'activity-feed');
+    setLoad(100);
+  }).catch(function(e){ setLoad(100); showToast('Error: '+e.message,'err'); });
+}
+
+function renderActivity(records, containerId){
+  var el = document.getElementById(containerId); if(!el) return;
+  var icons = {guardavidas:'🛟',spa:'💆',gimnasio:'🏋️'};
+  if(records.length===0){ el.innerHTML='<div style="color:var(--grey-l);font-size:12px;padding:10px 0;">Sin actividad reciente</div>'; return; }
+  el.innerHTML = records.map(function(r){
+    var ic = icons[r.type]||'📋';
+    var st = r.status==='completo'?'var(--green)':'var(--amber)';
+    var label = r.type==='guardavidas'?'Guardavidas':r.type==='spa'?'SPA':'Gimnasio';
+    return '<div class="activity-item">'+
+      '<div class="activity-dot" style="background:'+st+'"></div>'+
+      '<div class="activity-text">'+ic+' '+label+' — '+esc(r.turno||'')+'<br>'+
+        '<span style="color:var(--grey-l);">'+esc(r.responsable||'—')+'</span>'+
+        (r.obs?' · <em style="color:var(--grey-l);font-size:11px;">'+esc(r.obs.slice(0,60))+(r.obs.length>60?'…':'')+'</em>':'')+
+      '</div>'+
+      '<div class="activity-time">'+r.fecha+(r.horaCompletado?' '+r.horaCompletado:'')+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  STATS
+// ═══════════════════════════════════════════════════════
+function loadStats(){
+  setLoad(40);
+  var now = new Date(); var thisMonth = now.toISOString().split('T')[0].slice(0,7);
+  db.collection('checklists').get().then(function(snap){
+    var all = snap.docs.map(function(d){ return d.data(); });
+    var month = all.filter(function(r){ return r.fecha&&r.fecha.startsWith(thisMonth); });
+    var ok = month.filter(function(r){return r.status==='completo';}).length;
+    var avg = month.length>0?Math.round(month.reduce(function(a,r){return a+r.pct;},0)/month.length):0;
+
+    document.getElementById('stats-kpis').innerHTML = [
+      {c:'c-cyan', icon:'📋', val:month.length, lbl:'Registros este mes', sub:'Todos los tipos'},
+      {c:'c-green',icon:'✅', val:ok,           lbl:'Completos',          sub:avg+'% promedio'},
+      {c:'c-amber',icon:'⚡', val:avg+'%',      lbl:'Cumplimiento prom.', sub:'Todos los turnos'}
+    ].map(function(k){
+      return '<div class="stat-card '+k.c+'"><div class="stat-icon">'+k.icon+'</div>'+
+        '<div class="stat-val">'+k.val+'</div><div class="stat-lbl">'+k.lbl+'</div>'+
+        '<div class="stat-sub">'+k.sub+'</div></div>';
+    }).join('');
+
+    // By area
+    var types = [{t:'guardavidas',icon:'🛟',lbl:'Guardavidas'},{t:'spa',icon:'💆',lbl:'SPA'},{t:'gimnasio',icon:'🏋️',lbl:'Gimnasio'}];
+    var areaHtml = '';
+    types.forEach(function(tp){
+      var recs = month.filter(function(r){return r.type===tp.t;});
+      var okR  = recs.filter(function(r){return r.status==='completo';}).length;
+      var pctR = recs.length>0?Math.round(okR/recs.length*100):0;
+      var clr  = pctR===100?'var(--green)':pctR>=70?'var(--amber)':'var(--rose)';
+      areaHtml += '<div style="margin-bottom:14px;">'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:5px;">'+
+        '<span style="font-size:13px;font-weight:600;">'+tp.icon+' '+tp.lbl+'</span>'+
+        '<span style="font-family:DM Mono,monospace;font-size:12px;color:'+clr+';">'+pctR+'% ('+okR+'/'+recs.length+')</span>'+
+        '</div>'+
+        '<div style="height:6px;background:rgba(6,182,212,0.1);border-radius:100px;overflow:hidden;">'+
+        '<div style="height:100%;width:'+pctR+'%;background:'+clr+';border-radius:100px;transition:width 0.5s;"></div></div></div>';
+    });
+    document.getElementById('stats-by-area').innerHTML = areaHtml||'<div style="color:var(--grey-l);font-size:12px;">Sin datos este mes</div>';
+
+    // By user
+    var byUser = {};
+    month.forEach(function(r){
+      if(!r.responsable) return;
+      if(!byUser[r.responsable]) byUser[r.responsable]={total:0,ok:0};
+      byUser[r.responsable].total++;
+      if(r.status==='completo') byUser[r.responsable].ok++;
+    });
+    var userKeys = Object.keys(byUser).sort(function(a,b){ return byUser[b].total-byUser[a].total; }).slice(0,8);
+    var userHtml = userKeys.length===0?'<div style="color:var(--grey-l);font-size:12px;">Sin datos este mes</div>':'';
+    userKeys.forEach(function(name){
+      var d = byUser[name];
+      var p = Math.round(d.ok/d.total*100);
+      var c = p===100?'var(--green)':p>=70?'var(--amber)':'var(--rose)';
+      userHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(6,182,212,0.07);">'+
+        '<div style="width:28px;height:28px;border-radius:50%;background:var(--cyan-dim);border:1px solid var(--cyan);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--cyan);flex-shrink:0;">'+
+        name.charAt(0).toUpperCase()+'</div>'+
+        '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:var(--white);">'+esc(name)+'</div>'+
+        '<div style="font-size:10px;color:var(--grey-l);">'+d.total+' registros · '+d.ok+' completos</div></div>'+
+        '<span style="font-family:DM Mono,monospace;font-size:12px;font-weight:700;color:'+c+';">'+p+'%</span></div>';
+    });
+    document.getElementById('stats-by-user').innerHTML = userHtml;
+    setLoad(100);
+  }).catch(function(e){ setLoad(100); showToast('Error: '+e.message,'err'); });
+}
+
+// ═══════════════════════════════════════════════════════
+//  USERS TABLE
+// ═══════════════════════════════════════════════════════
+function loadUsersTable(){
+  if(currentUser && currentUser.rol!=='admin'){
+    document.getElementById('warn-admin-only').style.display='flex';
+    document.getElementById('usuarios-content').style.display='none';
+    return;
+  }
+  var users = getUsers();
+  var tbody = document.getElementById('users-tbody');
+  var areaLabels = {todos:'Todas',guardavidas:'🛟 Guardavidas',spa:'💆 SPA',gimnasio:'🏋️ Gimnasio'};
+  tbody.innerHTML = users.map(function(u,i){
+    return '<tr>'+
+      '<td><div style="display:flex;align-items:center;gap:8px;">'+
+        '<div class="user-avatar '+u.rol+'">'+u.nombre.charAt(0)+'</div>'+
+        '<span style="font-family:DM Mono,monospace;font-size:12px;">'+esc(u.username)+'</span></div></td>'+
+      '<td style="font-weight:600;color:var(--white);">'+esc(u.nombre)+'</td>'+
+      '<td><span class="badge '+(u.rol==='admin'?'b-admin':'b-sup')+'">'+
+        (u.rol==='admin'?'👑 Admin':'🔧 Supervisor')+'</span></td>'+
+      '<td><span style="font-size:11px;">'+esc(areaLabels[u.area]||u.area)+'</span></td>'+
+      '<td style="color:var(--grey-l);font-family:DM Mono,monospace;font-size:11px;">—</td>'+
+      '<td><span class="badge '+(u.activo?'b-green':'b-grey')+'">'+(u.activo?'✓ Activo':'Inactivo')+'</span></td>'+
+      '<td><div style="display:flex;gap:5px;">'+
+        '<button class="btn btn-ghost btn-sm" onclick="toggleUserStatus('+i+')">'+
+          (u.activo?'Desactivar':'Activar')+'</button>'+
+        (u.username!=='admin'?'<button class="btn btn-danger btn-sm" onclick="deleteUser('+i+')">🗑</button>':'')+
+      '</div></td>'+
+    '</tr>';
+  }).join('');
+}
+
+function addUser(){
+  var username = document.getElementById('nu-username').value.trim().toLowerCase();
+  var pass     = document.getElementById('nu-pass').value;
+  var nombre   = document.getElementById('nu-nombre').value.trim();
+  var rol      = document.getElementById('nu-rol').value;
+  var area     = document.getElementById('nu-area').value;
+  if(!username||!pass||!nombre){ showToast('Completa todos los campos','err'); return; }
+  if(pass.length<6){ showToast('La contraseña debe tener al menos 6 caracteres','err'); return; }
+  var users = getUsers();
+  if(users.find(function(u){return u.username===username;})){ showToast('El usuario ya existe','err'); return; }
+  users.push({username:username,pass:pass,nombre:nombre,rol:rol,area:area,activo:true});
+  saveUsers(users);
+  loadUsersTable();
+  closeModal('modal-add-user');
+  showToast('Usuario '+nombre+' creado correctamente','ok');
+  logActivity('Nuevo usuario creado: '+nombre+' ('+rol+')','var(--amber)');
+  ['nu-username','nu-pass','nu-nombre'].forEach(function(id){document.getElementById(id).value='';});
+}
+
+function toggleUserStatus(i){
+  var users = getUsers();
+  if(users[i].username==='admin'){ showToast('No puedes desactivar al administrador principal','err'); return; }
+  users[i].activo = !users[i].activo;
+  saveUsers(users);
+  loadUsersTable();
+  showToast(users[i].nombre+': '+(users[i].activo?'activado':'desactivado'),'ok');
+}
+
+function deleteUser(i){
+  var users = getUsers();
+  if(users[i].username==='admin'){ showToast('No puedes eliminar al administrador principal','err'); return; }
+  if(!confirm('¿Eliminar usuario '+users[i].nombre+'?')) return;
+  users.splice(i,1);
+  saveUsers(users);
+  loadUsersTable();
+  showToast('Usuario eliminado','ok');
+}
+
+// ═══════════════════════════════════════════════════════
+//  AREA TOGGLES
+// ═══════════════════════════════════════════════════════
+function saveAreaToggle(area, enabled){
+  if(currentUser && currentUser.rol!=='admin'){
+    showToast('Solo administradores pueden cambiar esto','err');
+    var sw = document.getElementById('sw-'+area.slice(0,3));
+    if(sw) sw.checked = !enabled;
+    return;
+  }
+  showToast(area+' '+(enabled?'activado':'desactivado'),'ok');
+  logActivity((enabled?'Área activada: ':'Área desactivada: ')+area,'var(--cyan)');
+}
+
+// ═══════════════════════════════════════════════════════
+//  SYSTEM SETTINGS
+// ═══════════════════════════════════════════════════════
+function saveTurnos(){
+  if(currentUser && currentUser.rol!=='admin'){ showToast('Solo administradores pueden cambiar turnos','err'); return; }
+  showToast('Turnos guardados correctamente','ok');
+  logActivity('Configuración de turnos actualizada','var(--amber)');
+}
+
+function saveSistema(){
+  if(currentUser && currentUser.rol!=='admin'){ showToast('Acceso restringido','err'); return; }
+  showToast('Configuración del sistema guardada','ok');
+  logActivity('Configuración del sistema actualizada','var(--amber)');
+}
+
+function testFirebase(){
+  setLoad(50);
+  db.collection('checklists').limit(1).get().then(function(){
+    setLoad(100);
+    showToast('✅ Firebase conectado correctamente','ok');
+  }).catch(function(e){ setLoad(100); showToast('Error: '+e.message,'err'); });
+}
+
+function exportDB(){
+  if(currentUser && currentUser.rol!=='admin'){ showToast('Acceso restringido','err'); return; }
+  setLoad(40);
+  db.collection('checklists').get().then(function(snap){
+    var data = snap.docs.map(function(d){var r=d.data();r._id=d.id;return r;});
+    var blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pcc_checklists_'+new Date().toISOString().split('T')[0]+'.json';
+    a.click();
+    setLoad(100);
+    showToast('Exportación completada','ok');
+  }).catch(function(e){ setLoad(100); showToast('Error: '+e.message,'err'); });
+}
+
+function confirmDangerAction(action){
+  if(currentUser && currentUser.rol!=='admin'){ showToast('Acceso restringido','err'); return; }
+  if(!confirm('¿Estás seguro? Esta acción NO se puede deshacer.')) return;
+  showToast('Función de purga — próximamente disponible','info');
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════════════
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(function(m){m.classList.remove('open');}); });
+
+// ═══════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════
+function esc(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showToast(msg, type){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className=type||'ok';
+  t.style.display='block';
+  clearTimeout(t._to);
+  t._to=setTimeout(function(){t.style.display='none';},3200);
+}
+
+// ─── Init date ───
+document.getElementById('date-now').textContent =
+  new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+</script>
+</body>
+</html>

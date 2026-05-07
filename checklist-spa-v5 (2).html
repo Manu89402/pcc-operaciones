@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checklist – Operaciones SPA</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- SheetJS for Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg-deep:    #060d1f;
+    --bg-mid:     #0d1e3a;
+    --accent:     #38bdf8;
+    --accent-soft:#bae6fd;
+    --accent2:    #7dd3fc;
+    --rose:       #fb7185;
+    --gold:       #fbbf24;
+    --green:      #34d399;
+    --white:      #faf5ff;
+    --grey:       #7ea8c4;
+    --surface:    rgba(56,189,248,0.08);
+    --border:     rgba(56,189,248,0.18);
+    --apertura:   #f59e0b;
+    --cierre:     #60a5fa;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 55% at 30% 0%, rgba(56,189,248,0.28) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 40% at 80% 90%, rgba(56,189,248,0.08) 0%, transparent 60%),
+      linear-gradient(180deg, #060d1f 0%, #020b18 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #0369a1, #c084fc, #f0abfc, #c084fc, #0369a1);
+    z-index: 100;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  header { text-align: center; margin-bottom: 36px; }
+
+  .club-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 6px 18px 6px 10px;
+    margin-bottom: 18px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-soft);
+  }
+
+  .club-badge span.dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:0.5; transform:scale(0.8); }
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 7vw, 66px);
+    letter-spacing: 0.05em;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--white) 20%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    color: var(--grey);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── SHIFT SELECTOR ── */
+  .shift-selector {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .shift-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 32px;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    background: var(--surface);
+    font-family: 'DM Sans', sans-serif;
+    min-width: 180px;
+  }
+
+  .shift-btn .shift-icon { font-size: 28px; line-height: 1; }
+  .shift-btn .shift-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.06em;
+  }
+  .shift-btn .shift-hours {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--grey);
+  }
+
+  .shift-btn.apertura {
+    border-color: rgba(245,158,11,0.3);
+    color: #fcd34d;
+  }
+  .shift-btn.apertura:hover,
+  .shift-btn.apertura.active {
+    border-color: var(--apertura);
+    background: rgba(245,158,11,0.15);
+    box-shadow: 0 0 24px rgba(245,158,11,0.25);
+    transform: translateY(-3px);
+  }
+
+  .shift-btn.cierre {
+    border-color: rgba(129,140,248,0.3);
+    color: #a5b4fc;
+  }
+  .shift-btn.cierre:hover,
+  .shift-btn.cierre.active {
+    border-color: var(--cierre);
+    background: rgba(129,140,248,0.15);
+    box-shadow: 0 0 24px rgba(129,140,248,0.25);
+    transform: translateY(-3px);
+  }
+
+  .shift-indicator {
+    display: none;
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    animation: fadeIn 0.4s ease;
+  }
+  .shift-indicator.apertura { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.4); display: block; }
+  .shift-indicator.cierre   { background: rgba(129,140,248,0.15); color: #a5b4fc; border: 1px solid rgba(129,140,248,0.4); display: block; }
+
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ── META ── */
+  .meta-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 26px;
+    margin-bottom: 28px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+  }
+
+  .meta-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 5px;
+  }
+
+  .meta-field input, .meta-field select {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(56,189,248,0.22);
+    border-radius: 8px;
+    padding: 8px 11px;
+    color: var(--white);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .meta-field input:focus, .meta-field select:focus { border-color: var(--accent); }
+  .meta-field select option { background: var(--bg-mid); }
+
+  /* ── PROGRESS ── */
+  .progress-wrap { margin-bottom: 28px; }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 9px;
+  }
+
+  .progress-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--grey);
+  }
+
+  .progress-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+  }
+
+  .progress-track {
+    height: 5px;
+    background: rgba(56,189,248,0.12);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0369a1, var(--accent), var(--accent2));
+    border-radius: 100px;
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 0 10px rgba(56,189,248,0.5);
+    width: 0%;
+  }
+
+  /* Section progress mini bars */
+  .section-progress-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .sec-mini {
+    flex: 1;
+    min-width: 120px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+  .sec-mini-name { font-size: 10px; color: var(--grey); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sec-mini-bar { height: 4px; background: rgba(56,189,248,0.12); border-radius: 100px; overflow: hidden; }
+  .sec-mini-fill { height: 100%; background: linear-gradient(90deg,#0369a1,var(--accent)); border-radius:100px; transition:width 0.4s ease; }
+  .sec-mini.complete .sec-mini-fill { background: linear-gradient(90deg, #059669, var(--green)); }
+  .sec-mini.complete { border-color: rgba(52,211,153,0.4); }
+  .sec-mini-count { font-size: 11px; font-family:'DM Mono',monospace; color: var(--accent); margin-top: 4px; }
+  .sec-mini.complete .sec-mini-count { color: var(--green); }
+
+  /* ── SECTIONS ── */
+  .section {
+    margin-bottom: 24px;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: border-color 0.3s;
+  }
+  .section.section-complete { border-color: rgba(52,211,153,0.5); }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: rgba(2,132,199,0.18);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+
+  .section-header:hover { background: rgba(2,132,199,0.3); }
+
+  .section-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 21px;
+    letter-spacing: 0.06em;
+    color: var(--accent-soft);
+    flex: 1;
+  }
+
+  .section-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--grey);
+    background: rgba(0,0,0,0.3);
+    padding: 3px 9px;
+    border-radius: 100px;
+    border: 1px solid rgba(56,189,248,0.15);
+    transition: all 0.3s;
+  }
+  .section-complete .section-badge { color: var(--green); border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.1); }
+
+  .chevron { color: var(--grey); transition: transform 0.3s; font-size: 13px; }
+  .section.collapsed .chevron { transform: rotate(-90deg); }
+  .section.collapsed .section-body { display: none; }
+  .section-body { background: rgba(15,8,20,0.55); }
+
+  /* section turno tag */
+  .section-turno-tag {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .section-turno-tag.apertura { background: rgba(245,158,11,0.2); color: #fcd34d; border: 1px solid rgba(245,158,11,0.35); }
+  .section-turno-tag.cierre   { background: rgba(129,140,248,0.2); color: #a5b4fc; border: 1px solid rgba(129,140,248,0.35); }
+  .section-turno-tag.ambos    { background: rgba(56,189,248,0.12); color: var(--accent-soft); border: 1px solid rgba(56,189,248,0.25); }
+
+  /* Section hidden by shift filter */
+  .section.shift-hidden { display: none; }
+
+  /* ── ITEMS ── */
+  .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(56,189,248,0.07);
+    transition: background 0.15s;
+    position: relative;
+  }
+
+  .item:last-child { border-bottom: none; }
+  .item:hover { background: rgba(56,189,248,0.04); }
+  .item.done { background: rgba(52,211,153,0.04); }
+  .item.skip { background: rgba(251,113,133,0.04); }
+
+  /* ── 3-STATE TOGGLE ── */
+  .cb-wrap {
+    width: 28px; height: 28px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .cb-box {
+    width: 28px; height: 28px;
+    border: 2px solid rgba(56,189,248,0.35);
+    border-radius: 6px;
+    transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 900;
+    color: transparent;
+    background: rgba(0,0,0,0.2);
+  }
+
+  /* State: done (X) */
+  .cb-wrap[data-state="done"] .cb-box {
+    background: rgba(52,211,153,0.15);
+    border-color: var(--green);
+    color: var(--green);
+    box-shadow: 0 0 10px rgba(52,211,153,0.3);
+  }
+
+  /* State: skip (-) */
+  .cb-wrap[data-state="skip"] .cb-box {
+    background: rgba(251,113,133,0.12);
+    border-color: var(--rose);
+    color: var(--rose);
+    box-shadow: 0 0 10px rgba(251,113,133,0.25);
+  }
+
+  /* tooltip hint */
+  .cb-wrap::after {
+    content: attr(data-hint);
+    position: absolute;
+    left: 36px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: var(--grey);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .cb-wrap:hover::after { opacity: 1; }
+
+  .item-content { flex: 1; }
+
+  .item-text {
+    font-size: 14px;
+    color: var(--white);
+    line-height: 1.45;
+    transition: color 0.2s;
+  }
+
+  .item.done .item-text { text-decoration: line-through; color: var(--grey); }
+  .item.skip .item-text { text-decoration: line-through; color: var(--rose); opacity: 0.7; }
+
+  .item-note {
+    font-size: 12px;
+    color: var(--grey);
+    margin-top: 3px;
+    font-style: italic;
+  }
+
+  /* tags */
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    padding: 2px 7px;
+    margin-right: 5px;
+    margin-bottom: 4px;
+  }
+
+  .tag-critical { background: rgba(251,113,133,0.15); color: #fda4af; border: 1px solid rgba(251,113,133,0.3); }
+  .tag-safety   { background: rgba(251,191,36,0.12);  color: #fcd34d; border: 1px solid rgba(251,191,36,0.25); }
+  .tag-note     { background: rgba(56,189,248,0.12); color: var(--accent-soft); border: 1px solid rgba(56,189,248,0.25); }
+  .tag-semanal  { background: rgba(52,211,153,0.1);   color: #6ee7b7; border: 1px solid rgba(52,211,153,0.25); }
+
+  /* ── OBSERVATIONS ── */
+  .obs-section {
+    margin-top: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 26px;
+  }
+
+  .obs-section h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 21px;
+    letter-spacing: 0.06em;
+    color: var(--accent-soft);
+    margin-bottom: 12px;
+  }
+
+  textarea {
+    width: 100%;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(56,189,248,0.2);
+    border-radius: 10px;
+    padding: 13px;
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+
+  /* ── ACTIONS ── */
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #0369a1, var(--accent));
+    color: var(--white);
+    box-shadow: 0 4px 20px rgba(56,189,248,0.28);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(56,189,248,0.42); }
+  .btn-primary:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+  .btn-excel {
+    background: linear-gradient(135deg, #14532d, #16a34a);
+    color: #bbf7d0;
+    border: 1px solid rgba(52,211,153,0.35);
+    box-shadow: 0 4px 18px rgba(22,163,74,0.2);
+  }
+  .btn-excel:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(22,163,74,0.38); border-color: var(--green); }
+  .btn-excel:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+  .btn-email {
+    background: linear-gradient(135deg, #0d1e3a, #0284c7);
+    color: var(--accent-soft);
+    border: 1px solid rgba(56,189,248,0.35);
+    box-shadow: 0 4px 18px rgba(3,105,161,0.2);
+  }
+  .btn-email:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(3,105,161,0.38); border-color: var(--accent); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--grey);
+    border: 1px solid rgba(56,189,248,0.2);
+  }
+  .btn-ghost:hover { background: rgba(56,189,248,0.07); color: var(--white); border-color: rgba(56,189,248,0.4); }
+
+  /* ── COMPLETION LOCK ── */
+  .lock-warning {
+    display: none;
+    background: rgba(251,113,133,0.1);
+    border: 1px solid rgba(251,113,133,0.4);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-top: 20px;
+    color: #fda4af;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .lock-warning.visible { display: flex; gap: 10px; align-items: flex-start; }
+  .lock-warning strong { display: block; font-size: 14px; margin-bottom: 4px; }
+
+  /* ── STATUS BANNER ── */
+  #status-banner {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: #064e3b;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 28px;
+    border-radius: 100px;
+    box-shadow: 0 8px 32px rgba(52,211,153,0.45);
+    z-index: 200;
+    animation: slideUp 0.4s ease;
+    white-space: nowrap;
+  }
+
+  @keyframes slideUp {
+    from { opacity:0; transform:translate(-50%,20px); }
+    to   { opacity:1; transform:translate(-50%,0); }
+  }
+
+  /* ── EMAIL MODAL ── */
+  #email-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,4,16,0.80);
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-box {
+    position: relative;
+    z-index: 1;
+    width: min(560px, 94vw);
+    background: #071428;
+    border: 1px solid rgba(56,189,248,0.28);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.65);
+    animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes modalIn {
+    from { opacity:0; transform:scale(0.88) translateY(16px); }
+    to   { opacity:1; transform:scale(1) translateY(0); }
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 22px 16px;
+    background: rgba(2,132,199,0.18);
+    border-bottom: 1px solid rgba(56,189,248,0.14);
+  }
+
+  .modal-icon { font-size: 26px; }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 21px; letter-spacing: 0.05em; color: var(--accent-soft); }
+  .modal-sub { font-size: 12px; color: var(--grey); margin-top: 2px; }
+
+  .modal-close {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: var(--grey);
+    font-size: 17px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .modal-close:hover { color: var(--white); background: rgba(255,255,255,0.07); }
+
+  .modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 13px; }
+
+  .email-field label {
+    display: block; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 5px;
+  }
+
+  .email-field input, .email-field textarea {
+    width: 100%; background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(56,189,248,0.2); border-radius: 8px;
+    padding: 9px 12px; color: var(--white);
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    outline: none; transition: border-color 0.2s; resize: vertical;
+  }
+  .email-field input:focus, .email-field textarea:focus { border-color: var(--accent); }
+
+  .preview-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
+
+  .email-preview {
+    background: rgba(0,0,0,0.45); border: 1px solid rgba(56,189,248,0.15);
+    border-radius: 8px; padding: 12px 14px; font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--accent-soft); line-height: 1.7;
+    max-height: 180px; overflow-y: auto; white-space: pre-wrap;
+  }
+  .email-preview::-webkit-scrollbar { width: 4px; }
+  .email-preview::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.3); border-radius: 4px; }
+
+  .modal-footer {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding: 14px 22px 18px; border-top: 1px solid rgba(56,189,248,0.1);
+  }
+
+  /* ── TEMPERATURE INPUTS ── */
+  .item-value {
+    display: flex; align-items: center; gap: 7px;
+    margin-top: 7px; flex-wrap: wrap;
+  }
+  .temp-label { font-size: 11.5px; color: var(--grey); font-weight: 500; }
+
+  .temp-input {
+    width: 72px; background: rgba(0,0,0,0.4);
+    border: 1.5px solid rgba(56,189,248,0.3); border-radius: 7px;
+    padding: 5px 8px; color: var(--accent); font-family: 'DM Mono', monospace;
+    font-size: 14px; font-weight: 500; outline: none; text-align: center;
+    transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    -moz-appearance: textfield;
+  }
+  .temp-input::-webkit-inner-spin-button, .temp-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .temp-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,0.15); }
+  .temp-input.out-of-range { border-color: var(--rose)!important; color: var(--rose)!important; box-shadow: 0 0 0 3px rgba(251,113,133,0.15)!important; }
+  .temp-input.in-range    { border-color: var(--green)!important; color: var(--green)!important; box-shadow: 0 0 0 3px rgba(52,211,153,0.12)!important; }
+
+  .unit { font-size: 12px; color: var(--grey); font-family: 'DM Mono', monospace; }
+  .range-tag { font-size: 11px; background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.22); border-radius: 5px; padding: 2px 8px; color: var(--accent-soft); font-family: 'DM Mono', monospace; white-space: nowrap; }
+  .temp-alert { display: none; font-size: 11px; color: var(--rose); font-weight: 600; letter-spacing: 0.03em; }
+  .temp-input.out-of-range ~ .temp-alert { display: inline; }
+
+  /* ── TEMP SUMMARY CARD ── */
+  .temp-summary { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px 26px; margin-bottom: 24px; }
+  .temp-summary h3 { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.06em; color: var(--accent-soft); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .temp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+  .temp-card { background: rgba(0,0,0,0.3); border: 1.5px solid rgba(56,189,248,0.18); border-radius: 12px; padding: 12px 14px; text-align: center; transition: border-color 0.3s; }
+  .temp-card.ok    { border-color: rgba(52,211,153,0.45); }
+  .temp-card.alert { border-color: rgba(251,113,133,0.5); }
+  .temp-card-name  { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--grey); margin-bottom: 6px; }
+  .temp-card-value { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 0.04em; color: var(--grey); line-height: 1; }
+  .temp-card.ok    .temp-card-value { color: var(--green); }
+  .temp-card.alert .temp-card-value { color: var(--rose); }
+  .temp-card-range  { font-family: 'DM Mono', monospace; font-size: 9.5px; color: var(--grey); margin-top: 4px; }
+  .temp-card-status { font-size: 10px; font-weight: 700; margin-top: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .temp-card.ok    .temp-card-status { color: var(--green); }
+  .temp-card.alert .temp-card-status { color: var(--rose); }
+  .temp-card.pending .temp-card-status { color: var(--grey); }
+
+  /* ── STATE LEGEND ── */
+  .state-legend {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--grey);
+  }
+  .legend-box {
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 900;
+  }
+  .legend-box.empty  { border: 2px solid rgba(56,189,248,0.35); background: rgba(0,0,0,0.2); }
+  .legend-box.done   { border: 2px solid var(--green); background: rgba(52,211,153,0.15); color: var(--green); }
+  .legend-box.skip   { border: 2px solid var(--rose);  background: rgba(251,113,133,0.12); color: var(--rose); }
+
+  /* ══════════════════════════════════════
+     PRINT STYLES
+  ══════════════════════════════════════ */
+  @media print {
+    @page { size: Letter landscape; margin: 4mm 5mm; }
+    * { -webkit-print-color-adjust: exact!important; print-color-adjust: exact!important; }
+    html, body { background: #fff!important; color: #111!important; font-size: 6pt!important; }
+    body::before, body::after { display: none!important; }
+    .wrapper { padding: 0!important; max-width: 100%!important; }
+    header { display: flex!important; align-items: center!important; gap: 6mm!important; margin-bottom: 1.5mm!important; text-align: left!important; }
+    .club-badge { background: #eff6ff!important; border: 0.5pt solid #0369a1!important; color: #0369a1!important; font-size: 5pt!important; padding: 0.8mm 2.5mm!important; margin-bottom: 0!important; }
+    .club-badge span.dot { background:#0369a1!important; box-shadow:none!important; animation:none!important; }
+    h1 { font-size: 15pt!important; background: none!important; -webkit-text-fill-color: #060d1f!important; color: #060d1f!important; margin-bottom: 0!important; }
+    .subtitle { color: #666!important; font-size: 5pt!important; }
+    .shift-selector, .shift-indicator, .progress-wrap, .btn, #status-banner, .actions, #email-modal, .temp-alert, .item-note, .section-progress-row, .lock-warning { display: none!important; }
+    .meta-card { background: #eff6ff!important; border: 0.5pt solid #0369a1!important; border-radius: 1.5mm!important; padding: 1mm 2mm!important; margin-bottom: 1.5mm!important; gap: 3mm!important; grid-template-columns: repeat(5,1fr)!important; }
+    .meta-field label { color: #0369a1!important; font-size: 5pt!important; margin-bottom: 0.3mm!important; }
+    .meta-field input, .meta-field select { background: #fff!important; border: 0.5pt solid #bbb!important; border-radius: 1mm!important; color: #111!important; font-size: 6pt!important; padding: 0.5mm 1.5mm!important; }
+    .sections-grid { display: grid!important; grid-template-columns: repeat(4,1fr)!important; gap: 1.2mm!important; margin-bottom: 1.5mm!important; }
+    .section { margin-bottom: 0!important; border-radius: 1.2mm!important; border: 0.5pt solid #0369a1!important; break-inside: avoid!important; }
+    .section.shift-hidden { display: none!important; }
+    .section.collapsed .section-body { display: block!important; }
+    .section-header { background: #0369a1!important; padding: 0.8mm 1.8mm!important; gap: 2mm!important; }
+    .section-icon { font-size: 7pt!important; }
+    .section-title { font-size: 6.5pt!important; color: #fff!important; letter-spacing: 0.02em!important; }
+    .section-badge { font-size: 4.5pt!important; color: #bae6fd!important; background: rgba(0,0,0,0.25)!important; border: none!important; padding: 0.3mm 1mm!important; }
+    .section-turno-tag { font-size: 4pt!important; padding: 0.2mm 0.8mm!important; }
+    .chevron { display: none!important; }
+    .section-body { background: #fff!important; }
+    .item { padding: 0.6mm 1.5mm!important; border-bottom: 0.3pt solid #eee!important; gap: 1.2mm!important; align-items: center!important; }
+    .item:last-child { border-bottom: none!important; }
+    .item.checked { opacity:1!important; background: #f0fff8!important; }
+    .item.checked .item-text { text-decoration: none!important; color: #007744!important; }
+    .cb-wrap { width: 8pt!important; height: 8pt!important; flex-shrink: 0!important; }
+    .cb-wrap input { display: none!important; }
+    .cb-wrap { width: 8pt!important; height: 8pt!important; flex-shrink: 0!important; cursor: default!important; }
+    .cb-box { width:8pt!important; height:8pt!important; border: 0.8pt solid #0369a1!important; border-radius:1pt!important; background:#fff!important; font-size:0!important; display:flex!important; align-items:center!important; justify-content:center!important; }
+    .cb-wrap[data-state="done"] .cb-box { background: #f0fff8!important; border-color: #007744!important; font-size:6pt!important; font-weight:900!important; color:#007744!important; }
+    .cb-wrap[data-state="skip"] .cb-box { background: #fff5f5!important; border-color: #c00!important; font-size:8pt!important; font-weight:900!important; color:#c00!important; }
+    .cb-wrap::after { display:none!important; }
+    .item-text { font-size: 5.8pt!important; color: #111!important; line-height: 1.25!important; }
+    .item.done { background: #f0fff8!important; }
+    .item.skip { background: #fff5f5!important; }
+    .item.done .item-text { color: #007744!important; }
+    .item.skip .item-text { color: #c00!important; opacity:0.8!important; }
+    .state-legend { display:none!important; }
+    .item-value { margin-top: 0.5mm!important; gap: 1mm!important; flex-wrap: nowrap!important; }
+    .temp-label { font-size: 5pt!important; color: #666!important; }
+    .temp-input { width:12mm!important; border: 0.8pt solid #0369a1!important; background:#eff6ff!important; color:#111!important; font-size:5.5pt!important; padding:0.3mm 1mm!important; }
+    .temp-input.in-range  { border-color:#007744!important; color:#007744!important; background:#efffee!important; }
+    .temp-input.out-of-range { border-color:#c00!important; color:#c00!important; background:#fff0f0!important; }
+    .unit { font-size:5pt!important; color:#555!important; }
+    .range-tag { font-size:4.5pt!important; background:#eff6ff!important; border:0.5pt solid #0369a1!important; color:#0369a1!important; padding:0.2mm 1mm!important; }
+    .tag { font-size:4.5pt!important; padding:0.2mm 1mm!important; }
+    .tag-critical { background:#ffe8ee!important; color:#c00!important; }
+    .tag-safety   { background:#fff8e0!important; color:#996600!important; }
+    .tag-note     { background:#eff6ff!important; color:#0369a1!important; }
+    .tag-semanal  { background:#efffef!important; color:#007744!important; }
+    .temp-summary { background:#eff6ff!important; border:0.5pt solid #0369a1!important; border-radius:1.5mm!important; padding:1mm 2mm!important; margin-bottom:1.5mm!important; }
+    .temp-summary h3 { font-size:7pt!important; color:#060d1f!important; margin-bottom:1mm!important; }
+    .temp-grid { grid-template-columns: repeat(6,1fr)!important; gap:1mm!important; }
+    .temp-card { background:#fff!important; border:0.8pt solid #7dd3fc!important; border-radius:1mm!important; padding:1mm!important; }
+    .temp-card.ok    { border-color:#007744!important; background:#f0fff8!important; }
+    .temp-card.alert { border-color:#c00!important;    background:#fff5f5!important; }
+    .temp-card-name  { font-size:5pt!important; color:#555!important; }
+    .temp-card-value { font-size:12pt!important; }
+    .temp-card.ok    .temp-card-value { color:#007744!important; }
+    .temp-card.alert .temp-card-value { color:#c00!important; }
+    .temp-card-range  { font-size:4.5pt!important; color:#888!important; }
+    .temp-card-status { font-size:5pt!important; }
+    .obs-section { background:#eff6ff!important; border:0.5pt solid #0369a1!important; border-radius:1.5mm!important; padding:1mm 2mm!important; margin-top:1.5mm!important; }
+    .obs-section h3 { font-size:7pt!important; color:#060d1f!important; margin-bottom:0.5mm!important; }
+    textarea { border:0.5pt solid #bbb!important; background:#fff!important; color:#111!important; font-size:5.5pt!important; min-height:8mm!important; border-radius:1mm!important; }
+    /* Shift label in print header */
+    .print-shift-label { display:block!important; font-size:6pt!important; font-weight:700!important; text-transform:uppercase!important; letter-spacing:0.08em!important; padding:0.5mm 2mm!important; border-radius:1mm!important; margin-left:3mm!important; }
+    .print-shift-label.apertura { background:#fff3cd!important; color:#7c4a00!important; border:0.5pt solid #f59e0b!important; }
+    .print-shift-label.cierre   { background:#e8eaff!important; color:#2a2f8a!important; border:0.5pt solid #818cf8!important; }
+  }
+
+  /* ── LOGO & HEADER TOP ── */
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .header-text { flex: 1; }
+  .club-logo {
+    height: 80px;
+    width: auto;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 16px rgba(56,189,248,0.25));
+    border-radius: 10px;
+  }
+
+  /* ── SPA SELECTOR ── */
+  .spa-selector { margin-bottom: 10px; text-align: center; }
+  .spa-selector-label {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--grey); margin-bottom: 12px;
+  }
+  .spa-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .spa-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 13px 36px; border-radius: 12px; border: 2px solid rgba(56,189,248,0.25);
+    cursor: pointer; background: var(--surface); font-family: 'DM Sans', sans-serif;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1); min-width: 160px;
+  }
+  .spa-btn .spa-icon { font-size: 26px; line-height: 1; }
+  .spa-btn .spa-name {
+    font-family: 'Bebas Neue', sans-serif; font-size: 19px;
+    letter-spacing: 0.06em; color: var(--accent-soft);
+  }
+  .spa-btn:hover { border-color: var(--accent); background: rgba(56,189,248,0.12); transform: translateY(-3px); }
+  .spa-btn.active {
+    border-color: var(--accent); background: rgba(56,189,248,0.18);
+    box-shadow: 0 0 22px rgba(56,189,248,0.3); transform: translateY(-3px);
+  }
+  .spa-indicator {
+    text-align: center; margin: 10px 0 20px; padding: 8px 20px;
+    border-radius: 100px; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    background: rgba(56,189,248,0.12); color: var(--accent-soft);
+    border: 1px solid rgba(56,189,248,0.3); display: none;
+    animation: fadeIn 0.4s ease;
+  }
+  .spa-indicator.visible { display: inline-block; }
+
+  /* ── PHOTO UPLOAD ── */
+  .photo-upload-area {
+    margin-top: 14px;
+    border: 2px dashed rgba(56,189,248,0.3);
+    border-radius: 12px;
+    padding: 16px;
+    background: rgba(0,0,0,0.2);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .photo-upload-area:hover { border-color: var(--accent); background: rgba(56,189,248,0.05); }
+  .photo-upload-area.has-photo { border-color: var(--green); border-style: solid; }
+
+  .photo-upload-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 10px; display: block;
+  }
+  .photo-upload-btn-wrap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .photo-upload-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(56,189,248,0.35);
+    background: rgba(56,189,248,0.1); color: var(--accent-soft);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .photo-upload-btn:hover { background: rgba(56,189,248,0.2); border-color: var(--accent); }
+  .photo-upload-input { display: none; }
+  .photo-filename { font-size: 12px; color: var(--grey); font-family: 'DM Mono', monospace; }
+  .photo-preview-wrap { margin-top: 10px; display: none; }
+  .photo-preview-wrap.visible { display: flex; gap: 10px; flex-wrap: wrap; }
+  .photo-thumb {
+    position: relative; width: 80px; height: 80px;
+    border-radius: 8px; overflow: hidden;
+    border: 2px solid rgba(52,211,153,0.4);
+  }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb-remove {
+    position: absolute; top: 2px; right: 2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(251,113,133,0.85); color: white;
+    font-size: 10px; font-weight: 900; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; line-height: 1;
+  }
+  .photo-hint { font-size: 11px; color: var(--grey); margin-top: 6px; font-style: italic; }
+
+  /* Print adjustments */
+  @media print {
+    .header-top { flex-wrap: nowrap!important; }
+    .club-logo { height: 14mm!important; filter: none!important; }
+    .header-text { text-align: left!important; }
+    .spa-selector, .spa-indicator { display:none!important; }
+    .spa-print-label { display:block!important; font-size:6pt!important; font-weight:700!important;
+      text-transform:uppercase!important; padding:0.5mm 2mm!important; border-radius:1mm!important;
+      background:#eff6ff!important; color:#0369a1!important; border:0.5pt solid #0369a1!important; margin-top:1mm!important; }
+    .photo-upload-area { display:none!important; }
+    .photo-print-area { display:block!important; }
+    .photo-print-img { max-height: 18mm!important; border-radius:1mm!important; border:0.5pt solid #ccc!important; margin-top:1mm!important; }
+  }
+  .spa-print-label { display: none; }
+  .photo-print-area { display: none; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-top">
+      <div class="header-text">
+        <div class="club-badge"><span class="dot"></span> Club Deportivo · Área de Spa</div>
+        <h1>CHECKLIST DE OPERACIONES SPA</h1>
+        <p class="subtitle">Operación Lunes – Domingo &nbsp;|&nbsp; 6:00 AM – 10:00 PM</p>
+      </div>
+      <img class="club-logo" src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCADVAZMDASIAAhEBAxEB/8QAHAABAQEAAgMBAAAAAAAAAAAAAAMBBgcCBAUI/8QARxAAAQMEAQIEAwQGBAsJAAAAAQACEgMEBREGITEHQVFhExRxCCIyQhUjgYKRoRZSsbIXJjM3Q1NicnOisyQnNGV1kpPB8P/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAIREBAQEBAAIDAQEAAwAAAAAAAAERAhIhAzFRQSITYYH/2gAMAwEAAhEDEQA/AOiopFWikV7MebUYpFWikUw1KKRVYpFFSikVWKRQSikVbSaTE1GKRVtJFMNRitgqxTSYalBIKsVsUw1GCQVopFMNRgkFaKRTFRgkFaK2KYIQSKvFIpgjFIq0UimCMUgrRSKCMEgrRSKgjBIK8UirghBIq8UighFIq8UigiGpFWikUEYpFXikVBCCQV4pFBCC2KtFbFBCKRV4pFBCCQVw1bFB68FsFaI9EigjBFaKIGlkVaKRWsZ1GKRVopFDUopFWikUEYpFWikUNRikVaKRQ1GK2KrFIoJRSKtFIoIxSPsrRSKCMfZIq0UiglFIqsUiglFIqsUiglFNKsfZIoJaTSrFIoanFIqsUiipRWupljyx7S1wOiCNEFc64NgvleOZTnmQpas8aRQsGvbttxfP/APcUx+sP0aPMrhRBcSTsk9SSoJRSKrH2SPsqJRSKrH2SPsglFIqsVsEEYpFVgkEEorYqkFoaglFIq8UgoqEVsVaCRQRikVaKRQRikVaKRVNRitiqxSKglFFaKJg8YpFXikVphCKRV4pFBANWxVopFBGKRVopFBGKRVopFBGPskVaKRTBKKRVopFXBGKR9laK2KioR9kh7K8UighH2SPsrxSKCEfZbFWikURGKRVopBBGKRVoJBBGK+zwvjWQ5ZyeywGMZK4uqgbIjbabe7nu9gNkr5gauwfB7xBo+H+R+apYajdVrmo1l1c1HGbLfYJp0x2BJGyTvegNDWzLuempn9fa+0fdY7D1cN4bYHQx2AoB1wRrdW5eNlzv9rR39XkeS6fivp5e9vs7nLrI3RdXvb64dVfoElz3u3oD6nQCnlcfXxuQrWF0A24oOhWYPyPH4mH3adg+4KczJhbr0IpFexSo1KtVlKlTdUqPcGta0bLiewA8yucc84UeD8ZxdDLgf0hywNxUodD8nbt6Naf9tzu5HaBHmdk9uv4pFWifRIn0VRENSKsGLYqLqMUj7KwYtgmCEfZaGq0EgglFIq0EgqIxSKtBIIIxSKtBIIIxSCvBIKYIQSCvBIIIxRWgiGsikVaPssLVtlKKyKtFbBFRikFYNSKIjBIK0VsUxUIJBXisimCMUirRSKIjFIq0VsfZFRDEgrRWxQQgkFeKRTBGKRVopFTBGKRVopFMEYpFWikUwRivqcU47leT523wuGtnXF3XdoDs1g83OPk0eZXnxzB5PkOatsPiLV9zeXDosY3+ZJ8gB1JPYL9KZTj2M8GPBfK17aoyrnr+kLV95rTnVag1pno1gk4DzjsrHXWev61zzvt+YM1a2lrlrm1sa5ubejUNNlbyqx6F49ASCQPIEDr3XqBhJ0Bsqwav0f9nfwg+XNvzDlNr+u6VMfZVG/g9Krx6+bR5d++tXrqczanM8q9Dw24BQ8O+DX/AIl8rtmnLW9qauOs6relu93SmXA/6Rzi0a/KD69vz7VNa6unVahfVr1nlzj3c9xPX6klfpb7YHI/hY3FcUoVPv3DjeXIB6wbttMfQukf3ArfZ38Ihi20OXcntf8At7gH2NpUb/4ceVR4/r+g/L379uc6znyrd52+Me19nvwfbx2nR5Rya2Dsw9srW2eN/KA/mcP9Yf8Al+vbonxt5J/SvxKy2Sp1J2tOp8ta6PT4VP7oI9nHbv3l+sfGzkn9FvDbK5CnUhdVafytqQevxKn3QR7tEnfur8QwT4t6t6p3kmRCKRV4JFdsc0QxIKwatimCIYkFaKRQRgtiqxWhqCMUirRSKCIakVaK2KghFIq8UigjFIqwatighFIq8UiqIRRXiiDwiharwKyK2yjFIq0UiUXUYrY+ysGpFRNRLVkVcsKQKqoRSKvBIIahFbFWgtihqEfZbFWikVBGKRVoJBMNRikfZWgkUxUopFexTLqbw9oaSP6zQ4fwPRfZsOT5ew18qMazXri7Z39tMqI49FeVOjUqOjTpue70aNldhY7xa5jZa+G7Eu164ug3+60L6eT8cea5HBXmIuKeKbRu6D6D6lO3c17WuBBiQ/QOifJT/X4vr9dURXt4bFX2ZylvjMZbPubu4eGUqbB1J/8Aoe/kqY3H3eSv6FhYW9S5uq7wylSpt25zj5BfrjwU8MrTg2M+cvRTuM7cs/X1h1FFv+rZ7ep8z7aWe+5xF45vVez4NeG9hwLC7eKdxmblo+buQO3n8Nno0fzPU+QHUf2uuRfOcix3GKFTdKwpfMXAB71an4QfcNG/31+lL65oWVlXvLmoKdChTdVqvPZrWjZP8AugfCzgFxzrlt34jcttiLC6uXXFlZ1R/luv3S4f6to0APza9O/n4vu9dO3U9eMev9nrwiFb5fl/KbX9V0qY+yqN/H5iq8enm0efftrf6MQdBoLh/jHyc8T4Bf5OlA3TwKFs17A5pqP6dQehAEjr2Wbb3WpJzHGeNcF/pL4h3viJyajOl8UNw1nUHRtJnRlZ49TqQb5S331rtSnUp1ATTe14B0S07X4W5Dyzk/IKr35jOX92Hd6bqxFMfRg+6P2BfKs7i7s6wrWdzXt6g/PSqFjv4hdr8Nv3XKfLJ/HdX2ts++/5BjuLWpc9ljSNzcNaN7qPH3Qfo0b/AH10SWEHRGiuX8S5xm+Ocnq8kpC3yOTqUPg/Gvw+oQNNEujgS7TQNnfQlclv/HDnd4CHPxbB6Cya7+9tdOZeZkjNs6u11ZFZFczyHiHym/2LivjXA+QxNr/b8Pa49fZC5vdmuy1BPc07SlTP/K0Lc1m4+bFIq0UijKQakVYNSKNIxWhqrFbFBGCQV4pFMEIJBXisigjBIK0UigkGpFWDVsVBCKRV4pFBCKL2Iog8IpFXgkF0YQgkVeCyCCMUirRSKgjFIq0UiqajFIq8EgouoRSKvBIIajH2SCtFbFURikVaKRUEYpBXikEEYpFWgkFBGKtY2dzfXlGzs6FSvcVnhlOmxu3OcewAVLa2q3NenQoUn1atRwaxjBsuJ7ABd8eHVrwnwttzkuU5S3rcle3RtaA+NUtQfyab0a/1JI9PrnrrxjXM1zTwT8MLXhdgMjkW06+euGfrH9227T/o2e/q7z7du/Za6Zu/tC8cZU1aYTK1mf1qhps/kHFedj9oPjFWoG3eIytu0/maGPA/5gV5euO+rtjvOuJ6jm/ifyDjOEwQo8ounU7S8MTQZTc91w1pBcwa8jsA76EEjz2Orsp9om2okUcJxdxotGmuuLgM0B2AY0HX8VwXx75fZ8w5dRrYusauOtLZjKLi0tk5wk86PUHZDf3V15BduPhme3Pr5Lvp3pZfaNuw8fOcVoPZ5/CvC0j+LSuJeNviVR57QxVvY2lxZ29qH1K1OqQd1T0GiO4DR36fiK64DUitz4+ZdjN76sxGKRVopFdGEYpFWikUEQ32Ww9laK2KghD2SHsrRSKCMFsVYN6rYoqEUirxSKojFIq0UigjFZBXitioPXgkF7EEgmmohqRV4pFEQikVeKRTFRiitFExXjFIqsUit45pRXjFXisj7JgjFbBWDUimCMEDVeKRQSikVWKzSYJxSKppaGoJBqQCtFIoJRSKtFIqKiGrYq0UigjFIq0Uig8rG7urF76lpVdRquaW/EZ0eAe+j3G+2x11sdiVAtJOz1JVYpFMNRDEirxXLvCPBUMzzO3fflrMZj2m9vXv/C2nT66PsTofQlS3Jqz3cfY5v4d47jHBcRmcnfvo5C4tA35JjBKrXc5z9kn8LWNc0HodloHTe11lFcy8U+W3HMuV1sgS5tnS/VWdIn8NMHuR6u7n+HkuJxU4lz2vVm+kgxIKwatitM6hBIK8UiouoQSCvFIoIBi2KtFIpgjFIq0UimGpBqRVYrYpgjFIq0UirgjFIq0UigjFbFVitipRGKRVopFTBGKRVopFURitiqxWxSKjFFaKK4a8IeyQ9leKRWnNCHskFeCRQQh7JE+ivFIIIhqRVopFXFQifRIeyvBA3qmIjD2SKvFIrOCMVsVYNWxVVCKRV4pFBGKRVopFTBGKBqtFA1MEopFWikUVGK5EMl+iuHPxFo7VzlXitfPaeoot/wAnS/advPsWr4cVpBJ2SSfdSzSVCKRVopFURDFsFYNXnTpPqOjTY57vRo2UwetBIr2H03McWvaWuHcHoQsighFIq0PZIeyIjFbFVh7LYoIxSKtFIoqMUirRSKCMUDFaC0NTBGCQV4JBMRCC2CtBbFBCCQV4pFQQgkFeKQRUAxbBXgkEVCCK8EQeEEgvLabW3N4wSC8tptB4wSC8tptFeEVsV5FB3Qc/8FMm48tx+Bu7HHXmPunvDm17Om97TAkEPLZdwOhJHdfY8SOX33G+f3+MxGMwlKytjTDaJx1Mh+6bXGR1vuT2IXGPBr/ObhP+M7/puXueMVleXninmxaWle4LX0dilTLtbos12XGyf8nv8dJb4f8ArlVtgMB4mcLvcvjcRb4fkNmSKjLURpVXAbH3e2ndevcEdSR36Yh7LvDhNT/Bl4eZDI5wi3y2SO7SxedVDEEMLm9x1JJ9Brz6Ljngk2wyFzlbHKYfG39K1x9S6pGtbMLw5rh0LtbIMvP9inPXjv4t53P11lD2WxXtX90+8un3D6VCkXfko0m02D2DWgBcxGQof4LTe/ojE/pAZQWnzPyNOXwvhF3bWpb89fz6rrbjnJrgkUiuy/Cn5K847yf5/EYu8qYzGvubWpWtGFzXBrjonW3DYHfa41juTV23lNz8Bg7xjTJ9H9G0xJo6u6tGx0B6+Snldsz6XPTjMUivuZbI2dHll9f4e2tjZPuHuoUa1u17BTLthsHDQ6dPZc58Wrux43yu2tMbx3BC1fZ06z6VSyaZOcXb69COw7EJesshOfWuqorQ1c/8TMBhrfAYHlGEtzY0ctSJq2cy5tN4AJLSeut7H8PVelnuWWpbZ4/E4jEutbK2p0G3FexY+rWIb95xLh0BdsgJOtnovOfbh0Uiuz/E64tcJT4/+jcJhaRvMXTua5NhTdJ7u/cdB9F8UR5zecfweKxdlYX36xt062oCnTOzuZA9GN2f5eik72at5944VFIrnvMsnjONZF/H+K2lsDZn4V1kK9BlWtXqj8Wi8GDQemm66gpwzJ43kuUp8f5XZ2r23p+FbX9CgyjXoVT+HbmgTaT004HqQnlc3DPea4FFIr6/LMJc8d5DeYa6IdUtnxDwNB7SNtd+0EFefCsfTyvLsTjqw3SuLumyoPVshIfw2tbM1n3uOZ4DieI4zw5vMeX23zdW4A/R2Mc7QqEjbXP9tdddgO+yQFx+88QeVVXkWeQGLtwfuW9hSbQpsHoIjZ/aSuY/aYu3nkeKxoOqNGzNZrR2295b/YwLqVc/jnlPKt9XxuR2PwPm9XJ5+1xPMqNlmbC7eKPxbygx1Si49GkP1vW9b327jsuvcjbi3yFzQbrVOq5g17EhSRbnOX0zerZ7eEUiu2fDTjuNvuGZLG3TGuy+btKtexDgNtZRcA0g9xKpv6hi6pIIJBBBHcFXnqW2Lecjwitgu0/DSlxzP8YyVhyW0sLZ3xqNrbZCnbsp1Kb6jXlu3ADzp9z331XBuXceyHGM3WxWRp6ezrTqAfdqs8nN9j/LqFJ3LcLzk18WCQXYGOytq7w0yF2/BYd2Rtrujb0ro2VMui9rjsjUSfuEb15r1OG8csHcev8Al/IW1H4uzd8OjbMdB13WOtM33Deo2R17+hU88+zPxwqCQXI6nLMoKxdZUcdYUgfu0bexpBoHoSWku+riSr5/OWORxmKvaOPx9rmKFSqy7FG0a2nXbphpvLNQ3+MEa8t+iu38T1+uKxX3qmHxdrxQX95kXDLXLwbWypNDgKW+r6h/Lvrod+x7HpzDxQ+RtOJcXrY/D4y0q5Sy+NdVKVowOc6LPwnX3Rtx7LhXFboWudtC+1tbqlUrMZVpXFFtRrmlw2OoOvqNFSW9TVsy4+RFIrlvNMi2y51kqVljsXStrO6q0KVD5GmWFrXa6gjqTHueo2daXNPEPh2KzFhWynErejQvsdSp/pDHUW621zA8Pa31079uj5jrL3mb/Tw3cdPRVrK0q3dyy2oNBqPOgCf2r2cPfuxt8y6FraXbR0dRuaIqMcPTR7fUaK5R4p3dG05nXs8PY2eNtrUUzTFvQaxxLqYJLnAbP4iNdteS1bdxJPWuH3tnVs7l9vXAD2HR0VGKtcVqtxWdVrPL3u1sn2GgpqprxigavPSIPGKRXmnkivCKLzRQeqiItsiIiAiaW6RGIt0mkMcv8Gv85uE/4zv7jl9XxWzeYw/ijnhispeWIrOo/E+BWcyWqLNb0fLZ/ivT8KbjjOGzlnn83nDRqWznltpTtajySWloJcBoDrvptefivc8ZzmevOQ4bOmtVuPhytKlrUYdhoYYuI12G+uvNcb7+T6/jrPXDhV5dXN5cOuLu4rXFZ/4qlV5e4/UnquwvAMF2czrB1c7CVwB+8xdcaXJvDTkw4nyqjlKtF1a2cx1G5Y3UnU3a3rfmCAffS13N5sjPFzra4yuTyA8Kgw/nzmx+yh1/vBexk8DxSrePucZzGypWL3lwpXNrXFak0/l01hDiO29ja9Dk+Rxr7CxwmF+M+wsjUqOr1mhj7is/UnloJiNNaAOp0OvdXfLDMcr8FKlKjiuZVa9u24pMw9R1SiXFoqNDXbaSOo2Omwvmca5Dxe3rXwdxujYVa2PuaVG6F1VqGm91F4Ai7Y+9uP731XveF2T4vhsRmqWbzRpvy1mbX4VK2qPNJpDgSTrRPUdlxulh+Om41V5fbto7/E2xrl2t+kQP5rGS9XWt9THHSu7fEKjxO/8AE7E47kdG+pitYUWC4pXLW0wS50Q5pZsAnoSHefbzXW/J3cfv+SUrXEXVOzxFtb06FO5q0XSqaG3Pc1rdlxcXeXp2C+x4x5XBchzNvlcLlBXay1ZbuovoVGP20u+8CW6I0R5p1/qwnqV6ni6/MUOUHC5FlOjaY5vwsfQotIptoflLd7JJAGySTsEeS4aO67FyfI8BzLiljachu6mNz2OZ8OlfOouq07hno+ILge3keuz5kLgdrQoVL4UK17SoUpEG4c15aAN9dAS6/Tz66WuPrKz197HPPGr8HFP/AEKgrfZxdRb4g1BV1N1jUFLf9aTD/YHL1fFPJ8dzdpiamIzQrVMdYstHUqltUYakdfeaSNeZPUjsuG4LKXuEy9tlcfV+Hc275sOtg+RBHmCNg+xWZzb8eNW53qWUbWbk7ptxv4wrPFTfeUjv+atxylWrcgx1G2BNZ91SbT13kXjX81yPktbj/K8g7MWt7SwuQuTK7tbpjzRNTzeyowHoe5DgOu+pV+MXfHuF3ZzFa8o53L0gRaW9s1woUXHpN73AbPoGg/X01evX17Zz29r7QlWjU8R6zaRBfStqTKuv62if7C1cR4jkWYnlOLydTfw7a7p1Kmv6ocJfy2vUyt/dZTJXGRvapq3NxUNSo4+ZP9g9l6qvPOc4XretdyfaVxzql1iOQUNVLarQNuajTtuwS9vX3Dna+i6dXYnDOf2tPjzuKcvs6mRwzmwp1GdatAeQG+4HceY9xoL5t9xPBV6zquC5ph6lqSS1t859vVaPQgt0fr0+ix8dvE8a31/q7HDqbH1KjadNpc9xAa0DZJPkvfs8PfXHIaeC+CWXrrn5U0z+R8okH6He/ouccRseG8VuxnM5yGzy13a/rLWysGve11QfhJeWgdD9BvzPZejwm/wltlL7kWXzrKGTr0Lg2zGW1V5o16khNxA103vpv8Q67Glq9/eRnx/X3RmOJYvxIsslb8gv2UcWGWVOi2wDqfw2N+G79Z8TeiS524+ZXFfF3DDCc+yNCm3VvcO+aoa7Rf1OvYOkP2LjD6VNt2aLbim6mHxFYB0SN/i1qWvPtv2XYfPclxbkHGcQG8glmcZaCg9xs6gbcgAaGyOh2O59SsyePUa3ylcdxI/7ts6f/MLP+7WXL+M5Ky8ROOs4jn67aWbtWk4q+f3qaH4HHzOh+0Dfcdfg4M8WZwG/xV5yEUche16NdoFpVcynAHTXEDqfvu2R7d1w1j329yKlvWIfSfKnUYSCCD0cPMeqt58tTccur429xHBM/jshQdQuaGWtWvY7/crdR6g9wfNcgzg+J9nPBm2H3aWRcbjXl96sOv7S3+IXq8v5zaco8N6dteMZTztO6oiu5rNfMMa2pp+x6b6jyJ6d18fgvLLTG4u+43n7erdYLIDdRtIj4lB/TVRm+h7Dp7A+xznVm2f1dkuf9OHhauRV+PYt1V78fyzE1bbe2OrirSqa/wBpkD1+hKzkZwVnhbLFYi7bkLkVH1728bRcxpcQA2myQDi1ol1I6krp5MeLkvisP8SuBu8v0a4b/dpLguEBdmrFoGybmmB/7guZW+awPJODY/jucv3YvIYt7vlLt1F1Sk+m78jo9R5Devyj3XpYm345xu7p5i5zltmbq2f8S1s7OlUi+oOrXVHva3TQdEgAkrHNyY1Zt18fnbg/m+ecDsHJXBH/AMrlybP8iyHFvFKtlMe77zKVu2rTJ+7VZ8Cntp//AHQ6K4baClkMrLJZBtqys8vrXD6bn6JOydNGySuReKFfj2SzlTL4LLG4bWbTY63fbvY5kaYbvZGiPuj36q2e5Kb62Pr+IfHcflsSOdcTZLH1zu/tWj71rU8zodhs9fTex0PT4PimP8e8h/u0f+ixPDnl1xxTLue5nzGNuR8O9tiNioz1APTY2frsjzU/Eq/scpzbI3+NqCpaVTTNJwBHQU2jse3ZTmWdZS2Wa45pNLUXTWMEREUTyRPJQEREMeuiItsiIiAiBNKUETSaQEHdNLVQREUG6WIiAiIroItHZaoPFbpag7oM0t0tRNGLNLl1vh8DicFY5PkjshXuMg01baztHNpkUgdB73uB7kHQA8u69Dk9hg6NtZ5DAX9Srb3IcH2ty5vzFs9uujo9C072HaHms+Wr4vgaTS+/w/DWuY/THzL6zPksVXvKfwyBt7NaB2D06+Wj7r4Su+8MAtX3eC4e2zufFhdvrMpG3rVd0iA7bKbnDuD02AvHg2Jts7y3HYm7fVZQuasHupEBwGiehII8vRS9SEmviIqV2hlZ7BvTXEDf1XM7/E8Nw+PwzspTz9a4v7CndvNtcUWsbIuGgHMJ/L6pbhJrhCxfc5lhaWDzItbe5dcW1ahTuaD3ti+FRocA4eThvqviHurLs0sxiLR3WhVHii8kQYFu1h7ppFaiIgLdLFoRIaWoiigW6WBaoppERUNJpFoTB46ReWkTDXqppai0yzSaWogBERKCIigIt0tVGAJpaiyM0sXkvFUEREGjstWDstQEHdEHdBqIiDnmdxd9yvjmBymCtn3z7DHsx95bUBKrSdTc6LiwdSHB29j0K+HyTjhwGLsTf3IZlrhznVbHQLqFPpEvIPRx6/d9PRfCpValJ86VR9N3q06K8SSSSTsnuVmc2NWyuZeFFvXu7rkVrbUn1q9XAXTKdNg25zjAAAeq+HleM8gxVp83ksNe2lCQb8SrRLW7PYbK+Ux76Zkx7mn1B0vJ9as9sX1XuHoXEpl3U2Zjk3hXc29tzW0+arMoU69Otb/EedNa59JzW7PpsgL7XAOMZzA8yt8tm8dcY/H4wvr3NzWbGmGhp1F3ZxJ0ABvuuvAqPrVn02031XuY38LS4kD6BTrnVnWMqunVe/WpOJXbWRfzcYXjDeNY99zanD0ZuGPpVgKkn7EntJHSPTa6jVG167Whra1QAdgHFOudObjlvizTa3P2teuaYytxZU6mUpsqSFO46gjudHQb90dB5LhulqLXMyYX3dZpaiKoIiIYIiaQEW6QoaxaFi0IRqIiAFqwLVBoTSBaqrNIAtRARbpEHqLei3Xss0jJ0WLdJpUYi3SxQaOy1AE0gIFukARTSaW6TSIxZpeWliDNeya9lqIMRD3RAQJpaEBEW6QYi3SxBoW6WBagIiICDui0eqKLD3W7TugxamkRArFpWIC0bWLQg1YvLSzSisWppNKqLVmlqAiIg0LVgWqaCBECaNREVMeusPdERkREQYU2iIPIIiIC0d0RBqIiAvFEQEREDSIiAtREABaiICIiAiIiiBERXksKIjLFo7IiNNRERKwppEQwWhEQaiIiiIiAiIgLQiINREUoIO6IoNREWlf/2Q==" alt="Puerto Cancún Club">
+    </div>
+    <span class="print-shift-label" id="print-shift-label" style="display:none"></span>
+    <span class="spa-print-label" id="spa-print-label"></span>
+  </header>
+
+  <!-- SPA TYPE SELECTOR -->
+  <div class="spa-selector">
+    <div class="spa-selector-label">Selecciona el área de spa:</div>
+    <div class="spa-btns">
+      <button class="spa-btn" id="btn-spa-damas" onclick="selectSpa('damas')">
+        <span class="spa-icon">👩</span>
+        <span class="spa-name">SPA DAMAS</span>
+      </button>
+      <button class="spa-btn" id="btn-spa-caballeros" onclick="selectSpa('caballeros')">
+        <span class="spa-icon">👨</span>
+        <span class="spa-name">SPA CABALLEROS</span>
+      </button>
+    </div>
+  </div>
+  <div class="spa-indicator" id="spa-indicator"></div>
+
+  <!-- SHIFT SELECTOR -->
+  <div class="shift-selector">
+    <button class="shift-btn apertura" id="btn-apertura" onclick="selectShift('apertura')">
+      <span class="shift-icon">🌅</span>
+      <span class="shift-name">APERTURA</span>
+      <span class="shift-hours">6:00 AM – 2:00 PM</span>
+    </button>
+    <button class="shift-btn cierre" id="btn-cierre" onclick="selectShift('cierre')">
+      <span class="shift-icon">🌙</span>
+      <span class="shift-name">CIERRE</span>
+      <span class="shift-hours">2:00 PM – 10:00 PM</span>
+    </button>
+  </div>
+
+  <div class="shift-indicator" id="shift-indicator"></div>
+
+  <!-- STATE LEGEND -->
+  <div class="state-legend">
+    <div class="legend-item">
+      <div class="legend-box empty"></div>
+      <span>Sin marcar — toca para cambiar</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box done">✕</div>
+      <span>Realizado</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box skip">–</div>
+      <span>No realizado</span>
+    </div>
+  </div>
+
+  <!-- META -->
+  <div class="meta-card">
+    <div class="meta-field">
+      <label>Fecha</label>
+      <input type="date" id="fecha">
+    </div>
+    <div class="meta-field">
+      <label>Turno</label>
+      <input type="text" id="turno-display" readonly placeholder="Selecciona un turno arriba" style="cursor:default;">
+    </div>
+    <div class="meta-field">
+      <label>Responsable</label>
+      <input type="text" id="responsable" placeholder="Nombre del encargado">
+    </div>
+    <div class="meta-field">
+      <label>Firma / Clave</label>
+      <input type="text" id="firma" placeholder="ID o firma">
+    </div>
+    <div class="meta-field">
+      <label>Área</label>
+      <input type="text" id="area" placeholder="Área asignada" value="SPA" readonly style="cursor:default;">
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap">
+    <div class="progress-header">
+      <span class="progress-label">Avance del Checklist</span>
+      <span class="progress-count" id="prog-count">0 / 0</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="prog-fill"></div></div>
+  </div>
+
+  <!-- SECTION MINI PROGRESS -->
+  <div class="section-progress-row" id="sec-mini-row"></div>
+
+  <!-- GRID DE SECCIONES -->
+  <div class="sections-grid">
+
+  <!-- ═══ SECCIÓN 1 – APERTURA ═══ -->
+  <div class="section" id="sec-apertura" data-turno="apertura">
+    <div class="section-header" onclick="toggleSection('sec-apertura')">
+      <span class="section-icon">🌅</span>
+      <span class="section-title">1 · Apertura (antes 6:00 AM)</span>
+      <span class="section-turno-tag apertura">Apertura</span>
+      <span class="section-badge" id="badge-sec-apertura">0/0</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><span class="tag tag-critical">Crítico</span>
+          <div class="item-text">Ingreso de personal a las 5:45 AM</div>
+          <div class="item-note">El personal debe estar listo antes de abrir al público</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Apertura general del spa a las 6:00 AM</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Encendido de luces general del spa</div>
+          <div class="item-note">Breakers ubicados en la bodega</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Encendido automático de A/C a las 6:00 AM</div>
+          <div class="item-note">Temperatura configurada a 24 °C</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Encender TV (programas deportivos) y PC</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Encender máquina de hielo a las 6:00 AM</div>
+          <div class="item-note">Apagar entre 11 AM – 12 PM según uso</div>
+        </div>
+      </div>
+
+      <!-- Foto de hora de entrada -->
+      <div style="padding: 12px 20px 16px; border-top: 1px solid rgba(56,189,248,0.1);">
+        <div class="photo-upload-area" id="apertura-photo-area">
+          <span class="photo-upload-label">📷 Foto de hora de entrada</span>
+          <div class="photo-upload-btn-wrap">
+            <label class="photo-upload-btn" for="apertura-photo-input">
+              📸 Tomar o seleccionar foto
+            </label>
+            <input type="file" id="apertura-photo-input" class="photo-upload-input"
+              accept="image/*" capture="environment" multiple
+              onchange="handlePhotoUpload(this,'apertura-photos-preview','apertura-photo-area')">
+            <span class="photo-filename" id="apertura-photo-filename">Sin foto adjunta</span>
+          </div>
+          <div class="photo-preview-wrap" id="apertura-photos-preview"></div>
+          <p class="photo-hint">Adjunta una foto que muestre la hora de llegada / apertura del spa.</p>
+          <div class="photo-print-area" id="apertura-photo-print"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 2 – EQUIPOS DE BIENESTAR ═══ -->
+  <div class="section" id="sec-equipos" data-turno="ambos">
+    <div class="section-header" onclick="toggleSection('sec-equipos')">
+      <span class="section-icon">♨️</span>
+      <span class="section-title">2 · Equipos de Bienestar</span>
+      <span class="section-turno-tag ambos">Ambos turnos</span>
+      <span class="section-badge" id="badge-sec-equipos">0/0</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><span class="tag tag-critical">Crítico</span>
+          <div class="item-text">Cuarto de Vapor — encendido y operativo</div>
+          <div class="item-value">
+            <span class="temp-label">Temp. registrada:</span>
+            <input type="number" step="0.5" placeholder="--" class="temp-input" data-equipo="Vapor">
+            <span class="unit">°C</span><span class="range-tag">40 – 50 °C</span>
+          </div>
+          <div class="item-note">Rango óptimo: 40 – 50 °C · Humedad relativa ~100%</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><span class="tag tag-critical">Crítico</span>
+          <div class="item-text">Sauna — encendido y operativo</div>
+          <div class="item-value">
+            <span class="temp-label">Temp. registrada:</span>
+            <input type="number" step="0.5" placeholder="--" class="temp-input" data-equipo="Sauna">
+            <span class="unit">°C</span><span class="range-tag">70 – 90 °C</span>
+          </div>
+          <div class="item-note">Rango óptimo: 70 – 90 °C · Humedad baja (&lt;20%)</div>
+        </div>
+      </div>
+
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content">
+          <div class="item-text">Jacuzzi — hidromasaje operativo</div>
+          <div class="item-value">
+            <span class="temp-label">Temp. del agua:</span>
+            <input type="number" step="0.5" placeholder="--" class="temp-input" data-equipo="Jacuzzi">
+            <span class="unit">°C</span><span class="range-tag">36 – 40 °C</span>
+          </div>
+          <div class="item-note">Rango óptimo: 36 – 40 °C · Verificar jets e hidrojets</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content">
+          <div class="item-text">Tina fría — operativa</div>
+          <div class="item-value">
+            <span class="temp-label">Temp. del agua:</span>
+            <input type="number" step="0.5" placeholder="--" class="temp-input" data-equipo="Tina fría">
+            <span class="unit">°C</span><span class="range-tag">10 – 18 °C</span>
+          </div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content">
+          <div class="item-text">Temperatura ambiente del área de spa</div>
+          <div class="item-value">
+            <span class="temp-label">Temp. ambiente:</span>
+            <input type="number" step="0.5" placeholder="--" class="temp-input" data-equipo="Ambiente spa">
+            <span class="unit">°C</span><span class="range-tag">22 – 26 °C</span>
+          </div>
+          <div class="item-note">A/C configurado a 24 °C</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Revisión general: funcionamiento correcto de todas las áreas</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 3 – SISTEMA DE AUDIO ═══ -->
+  <div class="section" id="sec-audio" data-turno="apertura">
+    <div class="section-header" onclick="toggleSection('sec-audio')">
+      <span class="section-icon">🎵</span>
+      <span class="section-title">3 · Sistema de Audio</span>
+      <span class="section-turno-tag apertura">Apertura</span>
+      <span class="section-badge" id="badge-sec-audio">0/0</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Encender el sistema de audio (arriba hacia abajo)</div>
+          <div class="item-note">Seguir el orden correcto de encendido del sistema</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Conectar la tableta al sistema de audio</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Reproducir la lista musical asignada</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Verificar volumen adecuado en todas las zonas</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 4 – INSUMOS Y MATERIALES ═══ -->
+  <div class="section" id="sec-insumos" data-turno="ambos">
+    <div class="section-header" onclick="toggleSection('sec-insumos')">
+      <span class="section-icon">🧴</span>
+      <span class="section-title">4 · Insumos y Materiales</span>
+      <span class="section-turno-tag ambos">Ambos turnos</span>
+      <span class="section-badge" id="badge-sec-insumos">0/0</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><span class="tag tag-note">Pedidos</span>
+          <div class="item-text">Revisar inventario de bebidas</div>
+          <div class="item-note">Pedidos: lunes, miércoles y viernes. Entrega del proveedor: martes, jueves y sábado</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Mueble de toallas abastecido</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Garrafones de agua disponibles</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Stock de toallas limpias disponible</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><span class="tag tag-semanal">Semanal</span>
+          <div class="item-text">Verificar caducidades de cada producto</div>
+          <div class="item-note">Revisar productos vencidos o por vencer</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 5 – LIMPIEZA GENERAL ═══ -->
+  <div class="section" id="sec-limpieza" data-turno="ambos">
+    <div class="section-header" onclick="toggleSection('sec-limpieza')">
+      <span class="section-icon">🧹</span>
+      <span class="section-title">5 · Limpieza General</span>
+      <span class="section-turno-tag ambos">Ambos turnos</span>
+      <span class="section-badge" id="badge-sec-limpieza">0/0</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Verificar que todas las áreas se encuentren limpias</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Revisar que las jaboneras estén llenas</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Revisar que las papeleras estén completas y con bolsa</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Revisar coladeras — solicitar apoyo de limpieza si es necesario</div>
+          <div class="item-note">Aplicable en ambos turnos</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><span class="tag tag-semanal">Semanal</span>
+          <div class="item-text">Limpieza profunda: regaderas, tapas de escusado, llaves de lavamanos, coladeras</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 6 – GESTIÓN DE LUCES ═══ -->
+  <div class="section" id="sec-luces" data-turno="ambos">
+    <div class="section-header" onclick="toggleSection('sec-luces')">
+      <span class="section-icon">💡</span>
+      <span class="section-title">6 · Gestión de Luces</span>
+      <span class="section-turno-tag ambos">Ambos turnos</span>
+      <span class="section-badge" id="badge-sec-luces">0/0</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">10:30 AM — Apagar luces de la sala</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">6:00 PM — Encender sistema de iluminación vespertino</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Verificar que todas las luminarias estén funcionando correctamente</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 7 – REVISIÓN SEGUNDO TURNO ═══ -->
+  <div class="section" id="sec-segundoturno" data-turno="ambos">
+    <div class="section-header" onclick="toggleSection('sec-segundoturno')">
+      <span class="section-icon">🔄</span>
+      <span class="section-title">7 · Revisión de Turno</span>
+      <span class="section-turno-tag ambos">Ambos turnos</span>
+      <span class="section-badge" id="badge-sec-segundoturno">0/0</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Realizar una segunda revisión completa de instalaciones</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Revisar materiales e insumos — reponer si es necesario</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Revisión de limpieza general en todas las áreas</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Reemplazar toallas sucias por limpias</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 8 – CIERRE: LUCES Y TOALLAS ═══ -->
+  <div class="section" id="sec-cierre1" data-turno="cierre">
+    <div class="section-header" onclick="toggleSection('sec-cierre1')">
+      <span class="section-icon">🌙</span>
+      <span class="section-title">8 · Cierre — Luces y Reabastecimiento</span>
+      <span class="section-turno-tag cierre">Cierre</span>
+      <span class="section-badge" id="badge-sec-cierre1">0/0</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Verificar que todas las luces estén apagadas e interruptores abajo</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Abastecer toallas limpias para el siguiente turno</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">A/C se apaga automáticamente a las 10:00 PM</div>
+          <div class="item-note">Confirmar que el sistema se apagó correctamente</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 9 – CIERRE: AUDIO Y EQUIPOS ═══ -->
+  <div class="section" id="sec-cierre2" data-turno="cierre">
+    <div class="section-header" onclick="toggleSection('sec-cierre2')">
+      <span class="section-icon">🔇</span>
+      <span class="section-title">9 · Cierre — Audio y Equipos</span>
+      <span class="section-turno-tag cierre">Cierre</span>
+      <span class="section-badge" id="badge-sec-cierre2">0/0</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Desactivar sistema de audio (apagar de abajo hacia arriba)</div>
+          <div class="item-note">Orden inverso al encendido</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Desconectar la tableta del sistema</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><span class="tag tag-critical">Crítico</span>
+          <div class="item-text">Verificar que tina fría y jacuzzi estén apagados</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Verificar que todas las instalaciones (vapor, sauna, cascada) estén apagadas</div></div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">TV y PC apagados</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 10 – SEGURIDAD Y LOST & FOUND ═══ -->
+  <div class="section" id="sec-seguridad" data-turno="cierre">
+    <div class="section-header" onclick="toggleSection('sec-seguridad')">
+      <span class="section-icon">🔒</span>
+      <span class="section-title">10 · Seguridad y Lost &amp; Found</span>
+      <span class="section-turno-tag cierre">Cierre</span>
+      <span class="section-badge" id="badge-sec-seguridad">0/0</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><span class="tag tag-critical">Crítico</span>
+          <div class="item-text">Llamar a seguridad para cerrar el spa</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Registrar artículos encontrados en la bitácora de Lost &amp; Found</div>
+          <div class="item-note">Resguardar en bodega; artículos de alto valor entregar a gerencia</div>
+        </div>
+      </div>
+      <div class="item"><div class="cb-wrap" data-state="" onclick="toggleState(this)"><span class="cb-box"></span></div>
+        <div class="item-content"><div class="item-text">Asegurar todas las instalaciones antes de retirarse</div></div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /sections-grid -->
+
+  <!-- RESUMEN DE TEMPERATURAS -->
+  <div class="temp-summary" id="temp-summary">
+    <h3>🌡️ Resumen de Temperaturas</h3>
+    <div class="temp-grid" id="temp-grid"></div>
+  </div>
+
+  <!-- OBSERVACIONES -->
+  <div class="obs-section">
+    <h3>📝 Observaciones y Novedades</h3>
+    <textarea id="obs-text" placeholder="Describe cualquier incidente, anomalía, artículo encontrado, acción correctiva o novedad del día…"></textarea>
+
+    <!-- Foto observaciones -->
+    <div class="photo-upload-area" id="obs-photo-area">
+      <span class="photo-upload-label">📷 Foto de evidencia (opcional)</span>
+      <div class="photo-upload-btn-wrap">
+        <label class="photo-upload-btn" for="obs-photo-input">
+          📂 Seleccionar foto
+        </label>
+        <input type="file" id="obs-photo-input" class="photo-upload-input" accept="image/*" multiple onchange="handlePhotoUpload(this,'obs-photos-preview','obs-photo-area')">
+        <span class="photo-filename" id="obs-photo-filename">Sin archivo seleccionado</span>
+      </div>
+      <div class="photo-preview-wrap" id="obs-photos-preview"></div>
+      <p class="photo-hint">Puedes adjuntar capturas, incidencias o evidencias del turno.</p>
+      <!-- For print -->
+      <div class="photo-print-area" id="obs-photo-print"></div>
+    </div>
+  </div>
+
+  <!-- COMPLETION LOCK WARNING -->
+  <div class="lock-warning" id="lock-warning">
+    <span style="font-size:20px;flex-shrink:0">🔒</span>
+    <div>
+      <strong>Checklist incompleto</strong>
+      <span id="lock-msg">Debes completar todas las áreas del turno antes de guardar.</span>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <button class="btn btn-primary" id="btn-pdf" onclick="guardarPDF()">📄 Guardar PDF</button>
+    <button class="btn btn-excel" id="btn-excel" onclick="exportarExcel()">📊 Exportar Excel</button>
+    <button class="btn btn-email" onclick="abrirModalEmail()">✉️ Enviar por Email</button>
+    <button class="btn btn-ghost" onclick="resetChecklist()">↺ Reiniciar</button>
+  </div>
+
+</div>
+
+<!-- EMAIL MODAL -->
+<div id="email-modal">
+  <div class="modal-overlay" onclick="cerrarModalEmail()"></div>
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-icon">✉️</span>
+      <div>
+        <div class="modal-title">Enviar Checklist por Email</div>
+        <div class="modal-sub">El resumen del día se incluirá en el cuerpo del correo</div>
+      </div>
+      <button class="modal-close" onclick="cerrarModalEmail()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="email-field">
+        <label>Para (destinatario) *</label>
+        <input type="email" id="email-to" placeholder="supervisor@clubdeportivo.com">
+      </div>
+      <div class="email-field">
+        <label>CC (opcional)</label>
+        <input type="email" id="email-cc" placeholder="gerencia@clubdeportivo.com">
+      </div>
+      <div class="email-field">
+        <label>Mensaje adicional (opcional)</label>
+        <textarea id="email-msg" placeholder="Agrega un comentario…" style="min-height:55px;"></textarea>
+      </div>
+      <div>
+        <div class="preview-label">Vista previa del resumen</div>
+        <div class="email-preview" id="email-preview"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModalEmail()">Cancelar</button>
+      <button class="btn btn-email" onclick="enviarEmail()">✉️ Abrir en cliente de correo</button>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BANNER -->
+<div id="status-banner">✅ ¡Checklist 100% completado!</div>
+
+<script>
+  // ── SHIFT STATE ──
+  let currentShift = null;
+
+  function selectShift(shift) {
+    currentShift = shift;
+    document.getElementById('btn-apertura').classList.toggle('active', shift === 'apertura');
+    document.getElementById('btn-cierre').classList.toggle('active', shift === 'cierre');
+
+    const indicator = document.getElementById('shift-indicator');
+    indicator.className = 'shift-indicator ' + shift;
+    indicator.textContent = shift === 'apertura'
+      ? '🌅  Turno APERTURA seleccionado — 6:00 AM a 2:00 PM'
+      : '🌙  Turno CIERRE seleccionado — 2:00 PM a 10:00 PM';
+
+    document.getElementById('turno-display').value =
+      shift === 'apertura' ? 'Apertura (6:00 AM – 2:00 PM)' : 'Cierre (2:00 PM – 10:00 PM)';
+
+    // Show/hide sections by turno
+    document.querySelectorAll('.section').forEach(sec => {
+      const turno = sec.dataset.turno;
+      if (turno === 'ambos' || turno === shift) {
+        sec.classList.remove('shift-hidden');
+      } else {
+        sec.classList.add('shift-hidden');
+      }
+    });
+
+    buildSectionMiniProgress();
+    updateProgress();
+  }
+
+  // ── TEMPERATURE CONFIG ──
+  const TEMP_CONFIG = {
+    'Vapor':           { min: 40, max: 50,  unit: '°C' },
+    'Sauna':           { min: 70, max: 90,  unit: '°C' },
+    'Jacuzzi':         { min: 36, max: 40,  unit: '°C' },
+    'Tina fría':       { min: 10, max: 18,  unit: '°C' },
+    'Ambiente spa':    { min: 22, max: 26,  unit: '°C' },
+  };
+
+  // ── BUILD TEMP SUMMARY CARDS ──
+  function buildTempGrid() {
+    const grid = document.getElementById('temp-grid');
+    grid.innerHTML = '';
+    Object.entries(TEMP_CONFIG).forEach(([equipo, cfg]) => {
+      const inp = document.querySelector(`.temp-input[data-equipo="${equipo}"]`);
+      const val = inp ? parseFloat(inp.value) : NaN;
+      const hasVal = !isNaN(val);
+      const ok = hasVal && val >= cfg.min && val <= cfg.max;
+      const cls = hasVal ? (ok ? 'ok' : 'alert') : 'pending';
+      const status = hasVal ? (ok ? '✓ OK' : '⚠ Fuera de rango') : '— Sin registrar';
+      grid.innerHTML += `
+        <div class="temp-card ${cls}">
+          <div class="temp-card-name">${equipo}</div>
+          <div class="temp-card-value">${hasVal ? val : '—'}</div>
+          <div class="temp-card-range">${cfg.min} – ${cfg.max} ${cfg.unit}</div>
+          <div class="temp-card-status">${status}</div>
+        </div>`;
+    });
+  }
+
+  // ── VALIDATE TEMP INPUTS ──
+  function validateTempInput(inp) {
+    const equipo = inp.dataset.equipo;
+    const cfg = TEMP_CONFIG[equipo];
+    const val = parseFloat(inp.value);
+    inp.classList.remove('in-range', 'out-of-range');
+    if (inp.value === '' || isNaN(val)) return;
+    inp.classList.add(val >= cfg.min && val <= cfg.max ? 'in-range' : 'out-of-range');
+    buildTempGrid();
+  }
+
+  document.querySelectorAll('.temp-input').forEach(inp => {
+    inp.addEventListener('input', () => validateTempInput(inp));
+    const alertSpan = document.createElement('span');
+    alertSpan.className = 'temp-alert';
+    alertSpan.textContent = '⚠ Fuera de rango';
+    inp.insertAdjacentElement('afterend', alertSpan);
+  });
+
+  buildTempGrid();
+
+  // ── TOGGLE SECTION ──
+  function toggleSection(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+  }
+
+  // ── CHECK COMPLETION PER SECTION ──
+  function isSectionComplete(sec) {
+    const items = sec.querySelectorAll('.item');
+    if (items.length === 0) return false;
+    return [...items].every(item => getItemState(item) !== '');
+  }
+
+  function getIncompleteSections() {
+    const incomplete = [];
+    document.querySelectorAll('.section:not(.shift-hidden)').forEach(sec => {
+      if (!isSectionComplete(sec)) {
+        const title = sec.querySelector('.section-title')?.textContent?.trim() || sec.id;
+        incomplete.push(title);
+      }
+    });
+    return incomplete;
+  }
+
+  // ── BUILD SECTION MINI PROGRESS BAR ──
+  function buildSectionMiniProgress() {
+    const row = document.getElementById('sec-mini-row');
+    row.innerHTML = '';
+    document.querySelectorAll('.section:not(.shift-hidden)').forEach(sec => {
+      const title = sec.querySelector('.section-title')?.textContent?.trim() || '';
+      const items = sec.querySelectorAll('.item');
+      let marked = 0;
+      items.forEach(item => { if (getItemState(item) !== '') marked++; });
+      const all  = items.length;
+      const pct   = all > 0 ? Math.round((marked/all)*100) : 0;
+      const complete = all > 0 && marked === all;
+      const div = document.createElement('div');
+      div.className = 'sec-mini' + (complete ? ' complete' : '');
+      div.dataset.secId = sec.id;
+      div.innerHTML = `
+        <div class="sec-mini-name" title="${title}">${title.replace(/^\d+\s·\s/, '')}</div>
+        <div class="sec-mini-bar"><div class="sec-mini-fill" style="width:${pct}%"></div></div>
+        <div class="sec-mini-count">${marked}/${all}</div>`;
+      div.style.cursor = 'pointer';
+      div.addEventListener('click', () => {
+        document.getElementById(sec.id).classList.remove('collapsed');
+        document.getElementById(sec.id).scrollIntoView({behavior:'smooth', block:'start'});
+      });
+      row.appendChild(div);
+    });
+  }
+
+  // ── PROGRESS ──
+  function updateProgress() {
+    const visibleSections = document.querySelectorAll('.section:not(.shift-hidden)');
+    let totalAll = 0, totalDone = 0, totalSkip = 0;
+
+    visibleSections.forEach(sec => {
+      const items = sec.querySelectorAll('.item');
+      let sDone = 0, sSkip = 0;
+      items.forEach(item => {
+        const st = getItemState(item);
+        if (st === 'done') sDone++;
+        if (st === 'skip') sSkip++;
+      });
+      totalAll  += items.length;
+      totalDone += sDone;
+      totalSkip += sSkip;
+
+      const badge = sec.querySelector('[id^="badge-"]');
+      if (badge) badge.textContent = (sDone + sSkip) + '/' + items.length;
+      sec.classList.toggle('section-complete', items.length > 0 && (sDone + sSkip) === items.length);
+    });
+
+    const totalMarked = totalDone + totalSkip;
+    const pct = totalAll > 0 ? (totalMarked / totalAll) * 100 : 0;
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-count').textContent = totalMarked + ' / ' + totalAll;
+
+    // Update mini bars
+    document.querySelectorAll('.sec-mini').forEach(mini => {
+      const sec = document.getElementById(mini.dataset.secId);
+      if (!sec) return;
+      const items = sec.querySelectorAll('.item');
+      let marked = 0;
+      items.forEach(item => { if (getItemState(item) !== '') marked++; });
+      const pct2 = items.length > 0 ? Math.round((marked/items.length)*100) : 0;
+      mini.querySelector('.sec-mini-fill').style.width = pct2 + '%';
+      mini.querySelector('.sec-mini-count').textContent = marked + '/' + items.length;
+      mini.classList.toggle('complete', items.length > 0 && marked === items.length);
+    });
+
+    // Check lock warning
+    const incomplete = getIncompleteSections();
+    const lockWarn = document.getElementById('lock-warning');
+    const btnPdf   = document.getElementById('btn-pdf');
+    const btnExcel = document.getElementById('btn-excel');
+    if (incomplete.length > 0 && currentShift) {
+      lockWarn.classList.add('visible');
+      document.getElementById('lock-msg').textContent =
+        'Secciones pendientes: ' + incomplete.map(t => t.replace(/^\d+\s·\s/,'')).join(', ') + '.';
+      btnPdf.disabled   = true;
+      btnExcel.disabled = true;
+    } else {
+      lockWarn.classList.remove('visible');
+      btnPdf.disabled   = false;
+      btnExcel.disabled = false;
+    }
+
+    if (totalMarked === totalAll && totalAll > 0) {
+      const b = document.getElementById('status-banner');
+      b.style.display = 'block';
+      setTimeout(() => b.style.display = 'none', 4000);
+    }
+  }
+
+  // ── 3-STATE TOGGLE ──
+  // States: '' (empty) → 'done' (X realizado) → 'skip' (- no realizado) → '' (empty)
+  function toggleState(wrap) {
+    const states = ['', 'done', 'skip'];
+    const labels = { '': '', 'done': 'X', 'skip': '–' };
+    const cur = wrap.dataset.state || '';
+    const next = states[(states.indexOf(cur) + 1) % states.length];
+    wrap.dataset.state = next;
+    wrap.querySelector('.cb-box').textContent = labels[next];
+    const item = wrap.closest('.item');
+    item.classList.remove('done', 'skip');
+    if (next) item.classList.add(next);
+    updateProgress();
+  }
+
+  function getItemState(item) {
+    return item.querySelector('.cb-wrap')?.dataset?.state || '';
+  }
+
+  // ── INIT ──
+  document.getElementById('fecha').valueAsDate = new Date();
+  buildSectionMiniProgress();
+  updateProgress();
+
+  // ── RESET ──
+  function resetChecklist() {
+    if (!confirm('\u00BFDeseas reiniciar todo el checklist?')) return;
+    // Clear 3-state items
+    document.querySelectorAll('.cb-wrap').forEach(function(wrap) {
+      wrap.dataset.state = '';
+      wrap.querySelector('.cb-box').textContent = '';
+      wrap.closest('.item').classList.remove('done','skip');
+    });
+    // Clear temperatures
+    document.querySelectorAll('.temp-input').forEach(function(i) {
+      i.value = '';
+      i.classList.remove('in-range','out-of-range');
+    });
+    // Clear text
+    var obsText = document.getElementById('obs-text');
+    if (obsText) obsText.value = '';
+    // Clear photos
+    clearPhotos();
+    // Clear spa selection
+    currentSpa = null;
+    document.getElementById('btn-spa-damas').classList.remove('active');
+    document.getElementById('btn-spa-caballeros').classList.remove('active');
+    var ind = document.getElementById('spa-indicator');
+    if (ind) { ind.className = 'spa-indicator'; ind.textContent = ''; }
+    var area = document.getElementById('area');
+    if (area) area.value = 'SPA';
+    buildTempGrid();
+    buildSectionMiniProgress();
+    updateProgress();
+  }
+
+  // ── SAVE PDF (print dialog) ──
+  function guardarPDF() {
+    const incomplete = getIncompleteSections();
+    if (incomplete.length > 0) {
+      alert('⚠️ No puedes guardar el PDF todavía.\n\nSecciones incompletas:\n• ' + incomplete.join('\n• '));
+      return;
+    }
+    // Update print shift label
+    const lbl = document.getElementById('print-shift-label');
+    if (currentShift) {
+      lbl.className = 'print-shift-label ' + currentShift;
+      lbl.textContent = currentShift === 'apertura' ? '🌅 Turno Apertura' : '🌙 Turno Cierre';
+    }
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('collapsed'));
+    buildTempGrid();
+    setTimeout(() => window.print(), 300);
+  }
+
+  // ── EXPORT EXCEL ──
+  function exportarExcel() {
+    const incomplete = getIncompleteSections();
+    if (incomplete.length > 0) {
+      alert('⚠️ No puedes exportar a Excel todavía.\n\nSecciones incompletas:\n• ' + incomplete.join('\n• '));
+      return;
+    }
+
+    const fecha       = document.getElementById('fecha').value || '-';
+    const turno       = document.getElementById('turno-display').value || (currentShift || '-');
+    const responsable = document.getElementById('responsable').value || '-';
+    const firma       = document.getElementById('firma').value || '-';
+    const area        = document.getElementById('area').value || 'SPA';
+    const obs         = document.getElementById('obs-text').value || '';
+
+    const wb = XLSX.utils.book_new();
+
+    // ── Sheet 1: Checklist ──
+    const rows = [];
+    rows.push(['CHECKLIST OPERACIONES SPA – Club Deportivo']);
+    rows.push([]);
+    rows.push(['Fecha', fecha, 'Turno', turno]);
+    rows.push(['Responsable', responsable, 'Firma/Clave', firma]);
+    rows.push(['Área', area]);
+    rows.push([]);
+    rows.push(['SECCIÓN', 'ÍTEM', 'ESTADO', 'TURNO']);
+
+    document.querySelectorAll('.section:not(.shift-hidden)').forEach(sec => {
+      const title  = sec.querySelector('.section-title')?.textContent?.trim() || '';
+      const turnoTag = sec.querySelector('.section-turno-tag')?.textContent?.trim() || '';
+      sec.querySelectorAll('.item').forEach(item => {
+        const st   = getItemState(item);
+        const text = item.querySelector('.item-text')?.textContent?.trim() || '';
+        const tempInp = item.querySelector('.temp-input');
+        let estado = st === 'done' ? '✕  Realizado' : st === 'skip' ? '–  No realizado' : '☐  Pendiente';
+        if (tempInp && tempInp.value) {
+          const eq  = tempInp.dataset.equipo;
+          const cfg = TEMP_CONFIG[eq];
+          const val = parseFloat(tempInp.value);
+          const ok  = val >= cfg.min && val <= cfg.max;
+          estado += ` | Temp: ${val}°C [${ok ? 'OK' : 'FUERA DE RANGO'}]`;
+        }
+        rows.push([title, text, estado, turnoTag]);
+      });
+    });
+
+    rows.push([]);
+    rows.push(['OBSERVACIONES Y NOVEDADES']);
+    rows.push([obs || '(Sin observaciones)']);
+
+    const ws1 = XLSX.utils.aoa_to_sheet(rows);
+    ws1['!cols'] = [{wch:35},{wch:55},{wch:35},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Checklist');
+
+    // ── Sheet 2: Temperaturas ──
+    const tempRows = [];
+    tempRows.push(['REGISTRO DE TEMPERATURAS']);
+    tempRows.push(['Fecha', fecha, 'Turno', turno]);
+    tempRows.push([]);
+    tempRows.push(['Equipo', 'Temp. Registrada', 'Unidad', 'Rango Mín', 'Rango Máx', 'Estado']);
+    Object.entries(TEMP_CONFIG).forEach(([equipo, cfg]) => {
+      const inp = document.querySelector(`.temp-input[data-equipo="${equipo}"]`);
+      const val = inp && inp.value !== '' ? parseFloat(inp.value) : null;
+      const hasVal = val !== null && !isNaN(val);
+      const ok = hasVal && val >= cfg.min && val <= cfg.max;
+      tempRows.push([
+        equipo,
+        hasVal ? val : 'Sin registrar',
+        cfg.unit,
+        cfg.min,
+        cfg.max,
+        !hasVal ? 'Sin registrar' : ok ? 'OK' : 'FUERA DE RANGO'
+      ]);
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet(tempRows);
+    ws2['!cols'] = [{wch:22},{wch:18},{wch:8},{wch:12},{wch:12},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Temperaturas');
+
+    // ── Sheet 3: Resumen ──
+    const visibleSecs = document.querySelectorAll('.section:not(.shift-hidden)');
+    let totalAll = 0, totalMarkedSum = 0;
+    const summaryRows = [];
+    summaryRows.push(['RESUMEN POR SECCIÓN']);
+    summaryRows.push(['Fecha', fecha, 'Turno', turno]);
+    summaryRows.push([]);
+    summaryRows.push(['Sección','Total ítems','Realizados (X)','No realizados (–)','Sin marcar','% Marcado','Estado']);
+    visibleSecs.forEach(sec => {
+      const title = sec.querySelector('.section-title')?.textContent?.trim() || '';
+      const items = sec.querySelectorAll('.item');
+      let done = 0, skip = 0;
+      items.forEach(item => {
+        const st = getItemState(item);
+        if (st === 'done') done++;
+        if (st === 'skip') skip++;
+      });
+      const all = items.length;
+      const marked = done + skip;
+      totalAll += all;
+      totalMarkedSum += marked;
+      summaryRows.push([title, all, done, skip, all-marked, Math.round((marked/all)*100)+'%', marked===all?'✓ Completo':'Incompleto']);
+    });
+    summaryRows.push([]);
+    summaryRows.push(['TOTAL', totalAll, '', '', totalAll-totalMarkedSum, Math.round((totalMarkedSum/totalAll)*100)+'%', totalMarkedSum===totalAll?'✓ Completo':'Incompleto']);
+    const ws3 = XLSX.utils.aoa_to_sheet(summaryRows);
+    ws3['!cols'] = [{wch:40},{wch:12},{wch:14},{wch:12},{wch:12},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws3, 'Resumen');
+
+    const filename = `Checklist_SPA_${fecha}_${currentShift||'turno'}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  }
+
+  // ── BUILD RESUMEN TEXT ──
+  function buildResumen() {
+    const fecha       = document.getElementById('fecha').value || '-';
+    const turno       = document.getElementById('turno-display').value || '-';
+    const responsable = document.getElementById('responsable').value || '-';
+    const obs         = document.getElementById('obs-text').value?.trim() || '(Sin observaciones)';
+
+    const visibleSecs = document.querySelectorAll('.section:not(.shift-hidden)');
+    let totalAll = 0, totalMarked = 0;
+    visibleSecs.forEach(s => {
+      const items = s.querySelectorAll('.item');
+      totalAll += items.length;
+      items.forEach(item => { if (getItemState(item) !== '') totalMarked++; });
+    });
+    const pct = totalAll > 0 ? Math.round((totalMarked/totalAll)*100) : 0;
+
+    let lines = [];
+    lines.push('===========================================');
+    lines.push('  CHECKLIST OPERACIONES SPA');
+    lines.push('  Club Deportivo');
+    lines.push('===========================================');
+    lines.push('  Fecha       : ' + fecha);
+    lines.push('  Turno       : ' + turno);
+    lines.push('  Responsable : ' + responsable);
+    lines.push('  Avance      : ' + totalMarked + ' / ' + totalAll + ' ítems (' + pct + '%)');
+    lines.push('  Leyenda     : [✕] Realizado   [–] No realizado   [ ] Sin marcar');
+    lines.push('');
+    lines.push('-------------------------------------------');
+    lines.push('  REGISTRO DE TEMPERATURAS');
+    lines.push('-------------------------------------------');
+    Object.entries(TEMP_CONFIG).forEach(([equipo, cfg]) => {
+      const inp = document.querySelector(`.temp-input[data-equipo="${equipo}"]`);
+      const val = inp && inp.value !== '' ? parseFloat(inp.value) : null;
+      const hasVal = val !== null && !isNaN(val);
+      const ok = hasVal && val >= cfg.min && val <= cfg.max;
+      const status = !hasVal ? 'Sin registrar' : ok ? 'OK' : '*** FUERA DE RANGO ***';
+      lines.push(`  ${equipo.padEnd(20)} ${hasVal ? val + ' ' + cfg.unit : '--'.padStart(8)}   [${status}]`);
+    });
+    lines.push('');
+    visibleSecs.forEach(sec => {
+      const title = sec.querySelector('.section-title')?.textContent?.trim() || '';
+      lines.push('-------------------------------------------');
+      lines.push('  ' + title);
+      lines.push('-------------------------------------------');
+      sec.querySelectorAll('.item').forEach(item => {
+        const st   = getItemState(item);
+        const text = item.querySelector('.item-text')?.textContent?.trim() || '';
+        const mark = st === 'done' ? '[✕]' : st === 'skip' ? '[–]' : '[ ]';
+        lines.push('  ' + mark + ' ' + text);
+      });
+      lines.push('');
+    });
+    lines.push('-------------------------------------------');
+    lines.push('  OBSERVACIONES Y NOVEDADES');
+    lines.push('-------------------------------------------');
+    lines.push('  ' + obs);
+    lines.push('');
+    lines.push('===========================================');
+    lines.push('  Reporte generado automáticamente.');
+    lines.push('===========================================');
+    return lines.join('\n');
+  }
+
+  // ── EMAIL MODAL ──
+  function abrirModalEmail() {
+    document.getElementById('email-preview').textContent = buildResumen();
+    document.getElementById('email-modal').style.display = 'flex';
+  }
+
+  function cerrarModalEmail() {
+    document.getElementById('email-modal').style.display = 'none';
+  }
+
+  function enviarEmail() {
+    const to = document.getElementById('email-to').value.trim();
+    const cc = document.getElementById('email-cc').value.trim();
+    const msg = document.getElementById('email-msg').value.trim();
+    if (!to) {
+      const inp = document.getElementById('email-to');
+      inp.style.borderColor = '#fb7185';
+      inp.focus();
+      setTimeout(() => inp.style.borderColor = '', 1800);
+      return;
+    }
+    const fecha   = document.getElementById('fecha').value || new Date().toLocaleDateString('es-MX');
+    const turno   = document.getElementById('turno-display').value || '';
+    const resumen = buildResumen();
+    const subject = encodeURIComponent('Checklist Operaciones SPA - ' + fecha + ' - ' + turno);
+    const body    = encodeURIComponent((msg ? msg + '\n\n' : '') + resumen);
+    const ccPart  = cc ? '&cc=' + encodeURIComponent(cc) : '';
+    window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + subject + ccPart + '&body=' + body;
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalEmail(); });
+
+  // ── SPA SELECTOR ──
+  let currentSpa = null;
+
+  function selectSpa(spa) {
+    currentSpa = spa;
+    document.getElementById('btn-spa-damas').classList.toggle('active', spa === 'damas');
+    document.getElementById('btn-spa-caballeros').classList.toggle('active', spa === 'caballeros');
+    const indicator = document.getElementById('spa-indicator');
+    indicator.className = 'spa-indicator visible';
+    indicator.textContent = spa === 'damas' ? '\u{1F469}  Spa de Damas seleccionado' : '\u{1F468}  Spa de Caballeros seleccionado';
+    const areaInput = document.getElementById('area');
+    if (areaInput) areaInput.value = spa === 'damas' ? 'SPA Damas' : 'SPA Caballeros';
+    const lbl = document.getElementById('spa-print-label');
+    if (lbl) lbl.textContent = spa === 'damas' ? 'Spa de Damas' : 'Spa de Caballeros';
+  }
+
+  // ── PHOTO UPLOAD ──
+  const photoStore = { apertura: [], obs: [] };
+
+  function handlePhotoUpload(input, previewContainerId, areaId) {
+    const storeKey = areaId.includes('apertura') ? 'apertura' : 'obs';
+    const files = Array.from(input.files);
+    if (!files.length) return;
+
+    const area = document.getElementById(areaId);
+    const previewWrap = document.getElementById(previewContainerId);
+    const filenameId = storeKey === 'apertura' ? 'apertura-photo-filename' : 'obs-photo-filename';
+    const fileNameSpan = document.getElementById(filenameId);
+
+    files.forEach(function(file) {
+      if (!file.type.startsWith('image/')) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var id = Date.now() + '_' + Math.floor(Math.random() * 10000);
+        var dataURL = e.target.result;
+        photoStore[storeKey].push({ id: id, dataURL: dataURL, name: file.name });
+
+        var thumb = document.createElement('div');
+        thumb.className = 'photo-thumb';
+        thumb.setAttribute('data-photo-id', id);
+
+        var img = document.createElement('img');
+        img.src = dataURL;
+        img.alt = file.name;
+        thumb.appendChild(img);
+
+        var removeBtn = document.createElement('button');
+        removeBtn.className = 'photo-thumb-remove';
+        removeBtn.textContent = 'x';
+        removeBtn.setAttribute('data-key', storeKey);
+        removeBtn.setAttribute('data-id', id);
+        removeBtn.setAttribute('data-preview', previewContainerId);
+        removeBtn.setAttribute('data-area', areaId);
+        removeBtn.onclick = function() {
+          removePhoto(
+            this.getAttribute('data-key'),
+            this.getAttribute('data-id'),
+            this.getAttribute('data-preview'),
+            this.getAttribute('data-area')
+          );
+        };
+        thumb.appendChild(removeBtn);
+
+        previewWrap.appendChild(thumb);
+        previewWrap.classList.add('visible');
+        area.classList.add('has-photo');
+
+        var count = photoStore[storeKey].length;
+        if (fileNameSpan) fileNameSpan.textContent = count + (count > 1 ? ' fotos adjuntas' : ' foto adjunta');
+        updatePhotoPrint(storeKey);
+      };
+      reader.readAsDataURL(file);
+    });
+    input.value = '';
+  }
+
+  function removePhoto(storeKey, id, previewContainerId, areaId) {
+    photoStore[storeKey] = photoStore[storeKey].filter(function(p) { return p.id != id; });
+    var previewWrap = document.getElementById(previewContainerId);
+    var thumb = previewWrap ? previewWrap.querySelector('[data-photo-id="' + id + '"]') : null;
+    if (thumb) thumb.remove();
+    var filenameId = storeKey === 'apertura' ? 'apertura-photo-filename' : 'obs-photo-filename';
+    var fn = document.getElementById(filenameId);
+    var ar = document.getElementById(areaId);
+    if (photoStore[storeKey].length === 0) {
+      if (previewWrap) previewWrap.classList.remove('visible');
+      if (ar) ar.classList.remove('has-photo');
+      if (fn) fn.textContent = 'Sin foto adjunta';
+    } else {
+      var count = photoStore[storeKey].length;
+      if (fn) fn.textContent = count + (count > 1 ? ' fotos adjuntas' : ' foto adjunta');
+    }
+    updatePhotoPrint(storeKey);
+  }
+
+  function updatePhotoPrint(storeKey) {
+    var printAreaId = storeKey + '-photo-print';
+    var printArea = document.getElementById(printAreaId);
+    if (!printArea) return;
+    printArea.innerHTML = '';
+    photoStore[storeKey].forEach(function(p) {
+      var img = document.createElement('img');
+      img.src = p.dataURL;
+      img.alt = p.name;
+      img.className = 'photo-print-img';
+      img.style.cssText = 'max-height:18mm;margin-right:2mm;border-radius:2px;border:0.5pt solid #ccc;';
+      printArea.appendChild(img);
+    });
+  }
+
+  function clearPhotos() {
+    ['apertura', 'obs'].forEach(function(key) {
+      photoStore[key] = [];
+      var previewKey = key === 'apertura' ? 'apertura-photos-preview' : 'obs-photos-preview';
+      var areaKey    = key === 'apertura' ? 'apertura-photo-area'     : 'obs-photo-area';
+      var fnKey      = key === 'apertura' ? 'apertura-photo-filename'  : 'obs-photo-filename';
+      var pw = document.getElementById(previewKey);
+      if (pw) { pw.innerHTML = ''; pw.classList.remove('visible'); }
+      var ar = document.getElementById(areaKey);
+      if (ar) ar.classList.remove('has-photo');
+      var fn = document.getElementById(fnKey);
+      if (fn) fn.textContent = 'Sin foto adjunta';
+      updatePhotoPrint(key);
+    });
+  }
+
+</script>
+</body>
+</html>

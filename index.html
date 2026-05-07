@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Control – Puerto Cancún Club</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#040e24;--navy-mid:#071635;--navy-card:#0a1e45;--navy-raised:#0d2455;
+  --blue:#2563eb;--blue-light:#3b82f6;--cyan:#06b6d4;--cyan-soft:#a5f3fc;
+  --white:#f0f9ff;--grey:#64748b;--grey-light:#94a3b8;
+  --green:#10b981;--green-soft:#6ee7b7;
+  --amber:#f59e0b;--amber-soft:#fcd34d;
+  --rose:#f43f5e;--rose-soft:#fda4af;
+  --purple:#8b5cf6;--purple-soft:#c4b5fd;
+  --surface:rgba(6,182,212,0.07);--border:rgba(6,182,212,0.15);--glow:rgba(37,99,235,0.35);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--navy);color:var(--white);font-family:'Syne',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(6,182,212,0.03)1px,transparent 1px),linear-gradient(90deg,rgba(6,182,212,0.03)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--cyan),var(--blue));z-index:200;}
+.shell{position:relative;z-index:1;display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:230px;flex-shrink:0;background:rgba(4,14,36,0.97);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);}
+.sb-logo img{width:90px;display:block;margin-bottom:8px;}
+.sb-logo-title{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:0.15em;color:var(--cyan);}
+.sb-logo-sub{font-size:10px;color:var(--grey);margin-top:2px;}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--grey);padding:14px 20px 5px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;font-size:13px;font-weight:600;color:var(--grey-light);border-left:3px solid transparent;transition:all 0.18s;user-select:none;}
+.nav-item:hover{background:rgba(6,182,212,0.07);color:var(--white);}
+.nav-item.active{background:rgba(37,99,235,0.15);border-left-color:var(--cyan);color:var(--cyan-soft);}
+.nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+.sb-bottom{margin-top:auto;padding:14px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--grey);font-family:'DM Mono',monospace;}
+.sb-status{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.sb-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* ── MAIN ── */
+.main{flex:1;padding:28px 32px;min-width:0;}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:14px;}
+.topbar-left h1{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:0.05em;background:linear-gradient(135deg,var(--white) 30%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;}
+.topbar-left p{font-size:12px;color:var(--grey-light);margin-top:3px;}
+.topbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all 0.18s;letter-spacing:0.02em;user-select:none;white-space:nowrap;}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--cyan));color:var(--white);box-shadow:0 4px 14px var(--glow);}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px var(--glow);}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.btn-ghost{background:var(--surface);border:1px solid var(--border);color:var(--grey-light);}
+.btn-ghost:hover{background:rgba(6,182,212,0.12);color:var(--white);border-color:var(--cyan);}
+.btn-danger{background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.28);color:var(--rose-soft);}
+.btn-danger:hover{background:rgba(244,63,94,0.24);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.btn-icon{padding:6px 10px;}
+
+/* ── PANELS ── */
+.panel{display:none;animation:fadeIn 0.25s ease;}
+.panel.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── GRID ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:18px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+
+/* ── KPI CARDS ── */
+.kpi-card{background:var(--navy-card);border:1px solid var(--border);border-radius:14px;padding:18px;position:relative;overflow:hidden;transition:transform 0.2s;}
+.kpi-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(37,99,235,0.07)0%,transparent 60%);pointer-events:none;}
+.kpi-card:hover{transform:translateY(-2px);}
+.kpi-icon{font-size:20px;margin-bottom:8px;}
+.kpi-value{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:0.03em;line-height:1;}
+.kpi-label{font-size:10px;color:var(--grey-light);text-transform:uppercase;letter-spacing:0.08em;margin-top:3px;}
+.kpi-sub{font-size:10px;color:var(--grey);margin-top:5px;font-family:'DM Mono',monospace;}
+.kpi-card.c-cyan .kpi-value{color:var(--cyan);}
+.kpi-card.c-green .kpi-value{color:var(--green);}
+.kpi-card.c-amber .kpi-value{color:var(--amber);}
+.kpi-card.c-rose .kpi-value{color:var(--rose);}
+.kpi-card.c-purple .kpi-value{color:var(--purple-soft);}
+
+/* ── CARD ── */
+.card{background:var(--navy-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:18px;}
+.card-header{padding:13px 18px;background:rgba(37,99,235,0.1);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.card-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.05em;color:var(--cyan-soft);display:flex;align-items:center;gap:7px;}
+.card-body{padding:18px;}
+.card-body-sm{padding:12px 18px;}
+
+/* ── TYPE SELECTOR ── */
+.type-selector{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.type-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--grey-light);cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;transition:all 0.18s;user-select:none;}
+.type-btn:hover{border-color:var(--cyan);color:var(--cyan-soft);}
+.type-btn.active{background:rgba(37,99,235,0.2);border-color:var(--blue-light);color:var(--cyan-soft);}
+
+/* ── SPA SUB TYPE ── */
+.spa-subtype{display:none;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.spa-subtype.visible{display:flex;}
+.spa-sub-btn{padding:6px 14px;border-radius:7px;border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.08);color:var(--purple-soft);cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;transition:all 0.18s;user-select:none;}
+.spa-sub-btn:hover{border-color:var(--purple);background:rgba(139,92,246,0.15);}
+.spa-sub-btn.active{border-color:var(--purple-soft);background:rgba(139,92,246,0.25);}
+
+/* ── FORM ── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.form-field{margin-bottom:10px;}
+.form-field label{display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan);margin-bottom:4px;}
+.form-field input,.form-field select,.form-field textarea{width:100%;background:rgba(0,0,0,0.4);border:1px solid rgba(6,182,212,0.2);border-radius:8px;padding:8px 11px;color:var(--white);font-family:'DM Mono',monospace;font-size:13px;outline:none;transition:border-color 0.2s;}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(6,182,212,0.1);}
+.form-field select option{background:var(--navy-mid);}
+.form-field textarea{resize:vertical;min-height:65px;font-family:'Syne',sans-serif;}
+
+/* ── SECTION FORM ── */
+.sec-hdr,.sec-row{display:grid;align-items:center;padding:7px 12px;border-bottom:1px solid rgba(6,182,212,0.07);font-size:12px;gap:8px;}
+.sec-hdr{font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--cyan);padding-bottom:6px;}
+.sec-row:last-child{border-bottom:none;}
+.sec-row input{width:100%;padding:4px 6px;text-align:center;border-radius:5px;background:rgba(0,0,0,0.4);border:1px solid rgba(6,182,212,0.18);color:var(--white);font-family:'DM Mono',monospace;font-size:12px;outline:none;-moz-appearance:textfield;}
+.sec-row input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.sec-row input:focus{border-color:var(--cyan);}
+.sec-row input[readonly]{color:var(--grey);cursor:default;}
+/* Guardavidas: 4 cols, SPA: 4 cols but more sections */
+.sec-hdr.gv,.sec-row.gv{grid-template-columns:2.2fr 60px 60px 60px;}
+.sec-hdr.spa,.sec-row.spa{grid-template-columns:2.2fr 55px 55px 55px;}
+
+/* ── PARAM FORM ── */
+.par-hdr,.par-row{display:grid;grid-template-columns:1.8fr 90px 65px;align-items:center;padding:7px 12px;border-bottom:1px solid rgba(6,182,212,0.07);font-size:12px;gap:8px;}
+.par-hdr{font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--cyan);padding-bottom:6px;}
+.par-row:last-child{border-bottom:none;}
+.par-row input{width:100%;padding:4px 6px;text-align:center;border-radius:5px;background:rgba(0,0,0,0.4);border:1px solid rgba(6,182,212,0.18);color:var(--white);font-family:'DM Mono',monospace;font-size:12px;outline:none;-moz-appearance:textfield;}
+.par-row input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.par-row input:focus{border-color:var(--cyan);}
+.ps{font-size:10px;font-weight:700;font-family:'DM Mono',monospace;}
+.ps.ok{color:var(--green);}.ps.bad{color:var(--rose);}.ps.none{color:var(--grey);}
+
+/* ── CL CARDS ── */
+.cl-list{display:flex;flex-direction:column;gap:10px;}
+.cl-card{background:var(--navy-raised);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:14px;transition:all 0.18s;cursor:pointer;}
+.cl-card:hover{border-color:var(--cyan);background:rgba(37,99,235,0.08);}
+.cl-icon{font-size:22px;flex-shrink:0;width:32px;text-align:center;}
+.cl-info{flex:1;min-width:0;}
+.cl-title{font-weight:700;font-size:13px;color:var(--white);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cl-meta{font-size:11px;color:var(--grey-light);font-family:'DM Mono',monospace;}
+.cl-badges{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;}
+.badge{font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;padding:2px 7px;border-radius:4px;}
+.b-green{background:rgba(16,185,129,0.15);color:var(--green-soft);border:1px solid rgba(16,185,129,0.3);}
+.b-amber{background:rgba(245,158,11,0.15);color:var(--amber-soft);border:1px solid rgba(245,158,11,0.3);}
+.b-rose{background:rgba(244,63,94,0.15);color:var(--rose-soft);border:1px solid rgba(244,63,94,0.3);}
+.b-blue{background:rgba(37,99,235,0.15);color:#93c5fd;border:1px solid rgba(37,99,235,0.3);}
+.b-cyan{background:rgba(6,182,212,0.12);color:var(--cyan-soft);border:1px solid rgba(6,182,212,0.25);}
+.b-purple{background:rgba(139,92,246,0.15);color:var(--purple-soft);border:1px solid rgba(139,92,246,0.3);}
+.cl-ring{flex-shrink:0;}
+.cl-actions{display:flex;gap:5px;flex-shrink:0;}
+
+/* Ring chart */
+.ring-wrap{width:48px;height:48px;position:relative;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;}
+
+/* ── FILTERS ── */
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.filter-bar select,.filter-bar input[type=date]{background:var(--navy-raised);border:1px solid var(--border);border-radius:7px;padding:7px 11px;color:var(--white);font-family:'DM Mono',monospace;font-size:12px;outline:none;}
+.filter-bar select:focus,.filter-bar input[type=date]:focus{border-color:var(--cyan);}
+.filter-bar select option{background:var(--navy-mid);}
+
+/* ── TABLES ── */
+.tbl{width:100%;border-collapse:collapse;margin-bottom:14px;}
+.tbl th{font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan);padding:7px 11px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+.tbl td{padding:9px 11px;border-bottom:1px solid rgba(6,182,212,0.07);font-size:12px;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:rgba(6,182,212,0.03);}
+.tbl-wrap{overflow-x:auto;}
+.pct-bar{width:100%;background:rgba(6,182,212,0.1);border-radius:100px;height:4px;margin-top:3px;}
+.pct-fill{height:100%;border-radius:100px;}
+.pct-fill.full{background:linear-gradient(90deg,var(--green),var(--cyan));}
+.pct-fill.part{background:linear-gradient(90deg,var(--amber),var(--amber-soft));}
+.s-ok{color:var(--green);font-weight:700;font-family:'DM Mono',monospace;}
+.s-bad{color:var(--rose);font-weight:700;font-family:'DM Mono',monospace;}
+.s-none{color:var(--grey);font-family:'DM Mono',monospace;}
+
+/* ── DETAIL OVERLAY ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(4,14,36,0.9);backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;padding:20px;}
+.overlay.open{display:flex;}
+.d-box{background:var(--navy-card);border:1px solid rgba(6,182,212,0.3);border-radius:18px;width:min(860px,100%);max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.7);animation:popIn 0.28s cubic-bezier(0.34,1.56,0.64,1);}
+.d-box::-webkit-scrollbar{width:4px;}
+.d-box::-webkit-scrollbar-thumb{background:rgba(6,182,212,0.3);border-radius:4px;}
+@keyframes popIn{from{opacity:0;transform:scale(0.9)translateY(12px)}to{opacity:1;transform:scale(1)translateY(0)}}
+.d-header{padding:18px 24px;background:rgba(37,99,235,0.12);border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:14px;position:sticky;top:0;z-index:1;backdrop-filter:blur(14px);}
+.d-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.05em;color:var(--cyan-soft);}
+.d-meta{font-size:11px;color:var(--grey-light);font-family:'DM Mono',monospace;margin-top:3px;}
+.d-close{background:transparent;border:none;color:var(--grey-light);font-size:17px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:all 0.2s;}
+.d-close:hover{color:var(--white);background:rgba(255,255,255,0.08);}
+.d-body{padding:22px 24px;}
+.d-section-title{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.05em;color:var(--cyan-soft);margin:16px 0 10px;display:flex;align-items:center;gap:7px;}
+
+/* ── CALENDAR ── */
+.cal-nav{display:flex;align-items:center;gap:8px;}
+.cal-month-lbl{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.05em;color:var(--cyan-soft);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px;}
+.cal-lbl{font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--grey);text-align:center;padding:5px 0;}
+.cal-day{background:var(--navy-raised);border:1px solid rgba(6,182,212,0.08);border-radius:7px;padding:6px 4px;text-align:center;min-height:50px;font-size:11px;transition:all 0.15s;}
+.cal-day.clickable{cursor:pointer;}
+.cal-day.clickable:hover{border-color:var(--cyan);background:rgba(6,182,212,0.08);}
+.cal-day.today{border-color:var(--blue-light);}
+.cal-day-num{font-weight:700;font-size:12px;margin-bottom:3px;}
+.cal-day.today .cal-day-num{color:var(--cyan);}
+.cal-dots{display:flex;gap:2px;justify-content:center;flex-wrap:wrap;}
+.cal-dot{width:5px;height:5px;border-radius:50%;}
+.cd-g{background:var(--green);}.cd-a{background:var(--amber);}.cd-r{background:var(--rose);}
+.cal-empty{background:transparent!important;border-color:transparent!important;}
+
+/* ── STAT ROWS ── */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(6,182,212,0.08);}
+.stat-row:last-child{border-bottom:none;}
+.stat-lbl{font-size:12px;color:var(--grey-light);}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;}
+
+/* ── OBS CARD ── */
+.obs-card{padding:12px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(6,182,212,0.12);border-radius:10px;margin-bottom:8px;}
+.obs-card-meta{font-size:10px;color:var(--grey);font-family:'DM Mono',monospace;margin-bottom:4px;}
+.obs-card-text{font-size:12px;color:var(--grey-light);font-style:italic;line-height:1.5;}
+.obs-box{background:rgba(0,0,0,0.3);border:1px solid rgba(6,182,212,0.15);border-radius:10px;padding:13px 16px;font-size:13px;color:var(--grey-light);line-height:1.6;font-style:italic;}
+
+/* ── PARAMS SUMMARY CARDS ── */
+.param-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px;}
+.param-card{background:rgba(0,0,0,0.3);border:1.5px solid rgba(6,182,212,0.18);border-radius:11px;padding:11px;text-align:center;}
+.param-card.ok{border-color:rgba(16,185,129,0.45);background:rgba(16,185,129,0.05);}
+.param-card.bad{border-color:rgba(244,63,94,0.45);background:rgba(244,63,94,0.05);}
+.param-card-name{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--grey);margin-bottom:5px;}
+.param-card-val{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;color:var(--grey);line-height:1;}
+.param-card.ok .param-card-val{color:var(--green);}
+.param-card.bad .param-card-val{color:var(--rose);}
+.param-card-range{font-family:'DM Mono',monospace;font-size:9px;color:var(--grey);margin-top:3px;}
+.param-card-st{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-top:3px;}
+.param-card.ok .param-card-st{color:var(--green);}
+.param-card.bad .param-card-st{color:var(--rose);}
+
+/* ── TURNO PILL ── */
+.turno-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;}
+.tp-apertura{background:rgba(245,158,11,0.15);color:#fcd34d;border:1px solid rgba(245,158,11,0.35);}
+.tp-cierre{background:rgba(96,165,250,0.15);color:#93c5fd;border:1px solid rgba(96,165,250,0.35);}
+.tp-matutino{background:rgba(245,158,11,0.15);color:#fcd34d;border:1px solid rgba(245,158,11,0.35);}
+.tp-vespertino{background:rgba(139,92,246,0.15);color:var(--purple-soft);border:1px solid rgba(139,92,246,0.35);}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:36px 20px;color:var(--grey);}
+.empty-icon{font-size:32px;margin-bottom:9px;opacity:0.45;}
+.empty-text{font-size:13px;font-weight:600;margin-bottom:3px;}
+.empty-sub{font-size:11px;font-family:'DM Mono',monospace;}
+
+/* ── LOADING BAR ── */
+#lbar{position:fixed;top:4px;left:0;height:3px;background:linear-gradient(90deg,var(--cyan),var(--blue));width:0%;transition:width 0.4s ease;z-index:999;border-radius:0 2px 2px 0;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#064e3b;font-weight:700;font-size:13px;padding:10px 22px;border-radius:100px;z-index:999;box-shadow:0 8px 24px rgba(16,185,129,0.4);display:none;white-space:nowrap;transition:all 0.3s;}
+#toast.err{background:var(--rose);color:#fff;box-shadow:0 8px 24px rgba(244,63,94,0.4);}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:14px 0;}
+
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .main{padding:18px 14px;}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr;}
+}
+
+  /* ── INTERACTIVE CHECKLIST FORM ── */
+  .chk-section { margin-bottom: 14px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color 0.3s; }
+  .chk-section.sec-complete { border-color: rgba(16,185,129,0.45); }
+  .chk-section-header { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: rgba(37,99,235,0.1); cursor: pointer; user-select: none; transition: background 0.2s; }
+  .chk-section-header:hover { background: rgba(37,99,235,0.18); }
+  .chk-section-icon { font-size: 16px; flex-shrink: 0; }
+  .chk-section-title { font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 0.05em; color: var(--cyan-soft); flex: 1; }
+  .chk-section-badge { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--grey); background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 100px; border: 1px solid rgba(6,182,212,0.15); transition: all 0.3s; }
+  .chk-section.sec-complete .chk-section-badge { color: var(--green); border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.1); }
+  .chk-section-chevron { color: var(--grey); font-size: 11px; transition: transform 0.25s; flex-shrink: 0; }
+  .chk-section.collapsed .chk-section-chevron { transform: rotate(-90deg); }
+  .chk-section.collapsed .chk-section-body { display: none; }
+  .chk-section-body { background: rgba(4,14,36,0.5); }
+
+  .chk-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-bottom: 1px solid rgba(6,182,212,0.06); transition: background 0.15s; }
+  .chk-item:last-child { border-bottom: none; }
+  .chk-item:hover { background: rgba(6,182,212,0.03); }
+  .chk-item.state-done { background: rgba(16,185,129,0.04); }
+  .chk-item.state-skip { background: rgba(244,63,94,0.04); }
+
+  .chk-toggle { width: 26px; height: 26px; flex-shrink: 0; cursor: pointer; user-select: none; }
+  .chk-toggle-box {
+    width: 26px; height: 26px; border: 2px solid rgba(6,182,212,0.3); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 900; color: transparent;
+    background: rgba(0,0,0,0.2); transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .chk-toggle[data-state="done"] .chk-toggle-box { background: rgba(16,185,129,0.15); border-color: var(--green); color: var(--green); box-shadow: 0 0 8px rgba(16,185,129,0.25); }
+  .chk-toggle[data-state="skip"] .chk-toggle-box { background: rgba(244,63,94,0.12); border-color: var(--rose); color: var(--rose); box-shadow: 0 0 8px rgba(244,63,94,0.2); }
+
+  .chk-item-text { font-size: 12px; color: var(--white); line-height: 1.4; flex: 1; transition: color 0.2s; }
+  .chk-item.state-done .chk-item-text { text-decoration: line-through; color: var(--grey); }
+  .chk-item.state-skip .chk-item-text { text-decoration: line-through; color: var(--rose); opacity: 0.7; }
+
+  /* Has measurement input (water/temp params inline) */
+  .chk-item-measure { display: flex; align-items: center; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .chk-meas-input { width: 72px; background: rgba(0,0,0,0.4); border: 1.5px solid rgba(6,182,212,0.25); border-radius: 6px; padding: 4px 7px; color: var(--cyan); font-family: 'DM Mono', monospace; font-size: 12px; text-align: center; outline: none; transition: all 0.2s; -moz-appearance: textfield; }
+  .chk-meas-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .chk-meas-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(6,182,212,0.12); }
+  .chk-meas-input.in-range { border-color: var(--green) !important; color: var(--green) !important; }
+  .chk-meas-input.out-range { border-color: var(--rose) !important; color: var(--rose) !important; }
+  .chk-meas-lbl { font-size: 10px; color: var(--grey); }
+  .chk-meas-unit { font-size: 10px; color: var(--grey); font-family: 'DM Mono', monospace; }
+  .chk-meas-range { font-size: 9px; background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.2); border-radius: 4px; padding: 1px 6px; color: var(--cyan-soft); font-family: 'DM Mono', monospace; white-space: nowrap; }
+
+  /* Legend */
+  .chk-legend { display: flex; gap: 14px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .chk-legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--grey-light); }
+  .chk-legend-box { width: 20px; height: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; }
+  .chk-legend-box.empty { border: 2px solid rgba(6,182,212,0.3); background: rgba(0,0,0,0.2); }
+  .chk-legend-box.done  { border: 2px solid var(--green); background: rgba(16,185,129,0.15); color: var(--green); }
+  .chk-legend-box.skip  { border: 2px solid var(--rose);  background: rgba(244,63,94,0.12); color: var(--rose); }
+
+  /* Progress bar for form */
+  .chk-progress { margin-bottom: 14px; }
+  .chk-progress-bar { height: 5px; background: rgba(6,182,212,0.1); border-radius: 100px; overflow: hidden; margin-top: 5px; }
+  .chk-progress-fill { height: 100%; background: linear-gradient(90deg, #0369a1, var(--cyan)); border-radius: 100px; transition: width 0.4s ease; }
+  .chk-progress-labels { display: flex; justify-content: space-between; font-size: 11px; }
+  .chk-progress-pct { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--cyan); }
+
+</style>
+</head>
+<body>
+<div id="lbar"></div>
+
+<div class="shell">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <img src="data:image/png;base64,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" alt="Puerto Cancún Club">
+    <div class="sb-logo-title">Panel de Control</div>
+    <div class="sb-logo-sub">Operaciones Club</div>
+  </div>
+
+  <div class="sb-section">Vistas</div>
+  <div class="nav-item active" onclick="showPanel('dashboard')"><span class="nav-icon">📊</span> Resumen General</div>
+  <div class="nav-item" onclick="showPanel('registrar')"><span class="nav-icon">➕</span> Nuevo Registro</div>
+  <div class="nav-item" onclick="showPanel('checklists')"><span class="nav-icon">📋</span> Todos los Registros</div>
+  <div class="nav-item" onclick="showPanel('historico')"><span class="nav-icon">📅</span> Histórico</div>
+
+  <div class="sb-section">Filtrar</div>
+  <div class="nav-item" onclick="quickFilter('')"><span class="nav-icon">🔷</span> Todos</div>
+  <div class="nav-item" onclick="quickFilter('guardavidas')"><span class="nav-icon">🛟</span> Guardavidas</div>
+  <div class="nav-item" onclick="quickFilter('spa')"><span class="nav-icon">💆</span> SPA</div>
+  <div class="nav-item" onclick="quickFilter('gimnasio')"><span class="nav-icon">🏋️</span> Gimnasio</div>
+
+  <div class="sb-bottom">
+    <div class="sb-status"><span class="sb-dot"></span><span id="sb-status-txt">Conectando…</span></div>
+    <div id="sb-count" style="color:var(--cyan);margin-top:2px;">0 registros</div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1 id="panel-title">RESUMEN GENERAL</h1>
+      <p id="date-now"></p>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm" onclick="loadDemoData()">📂 Datos de ejemplo</button>
+      <button class="btn btn-primary" onclick="showPanel('registrar')">➕ Nuevo Registro</button>
+    </div>
+  </div>
+
+  <!-- ─── DASHBOARD ─── -->
+  <div class="panel active" id="panel-dashboard">
+
+    <!-- KPIs -->
+    <div class="grid-4">
+      <div class="kpi-card c-cyan"><div class="kpi-icon">📋</div><div class="kpi-value" id="kpi-total">—</div><div class="kpi-label">Total registros</div><div class="kpi-sub">Últimos 2 meses</div></div>
+      <div class="kpi-card c-green"><div class="kpi-icon">✅</div><div class="kpi-value" id="kpi-ok">—</div><div class="kpi-label">Completos</div><div class="kpi-sub" id="kpi-ok-pct">100% marcado</div></div>
+      <div class="kpi-card c-amber"><div class="kpi-icon">⚠️</div><div class="kpi-value" id="kpi-par">—</div><div class="kpi-label">Parciales</div><div class="kpi-sub">Ítem(s) sin marcar</div></div>
+      <div class="kpi-card c-rose"><div class="kpi-icon">⚡</div><div class="kpi-value" id="kpi-avg">—</div><div class="kpi-label">Cumplimiento prom.</div><div class="kpi-sub" id="kpi-type-split">—</div></div>
+    </div>
+
+    <!-- KPIs por tipo -->
+    <div class="grid-2">
+      <div class="kpi-card c-blue" style="--blue:#3b82f6;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div><div class="kpi-icon">🛟</div><div class="kpi-value" id="kpi-gv">—</div><div class="kpi-label">Guardavidas</div></div>
+          <div style="text-align:right;"><div style="font-size:10px;color:var(--grey-light);margin-bottom:4px;">Hoy</div><div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--cyan)" id="kpi-gv-today">—</div></div>
+        </div>
+        <div class="kpi-sub" id="kpi-gv-sub">Alberca Semiolímpica</div>
+      </div>
+      <div class="kpi-card c-purple">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div><div class="kpi-icon">💆</div><div class="kpi-value" id="kpi-spa">—</div><div class="kpi-label">SPA</div></div>
+          <div style="text-align:right;"><div style="font-size:10px;color:var(--grey-light);margin-bottom:4px;">Hoy</div><div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--purple-soft)" id="kpi-spa-today">—</div></div>
+        </div>
+        <div class="kpi-sub" id="kpi-spa-sub">Damas / Caballeros</div>
+      </div>
+    </div>
+
+    <!-- Últimos registros + observaciones -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><div class="card-title">🕐 Últimos Registros</div></div>
+        <div class="card-body"><div id="recent-list" class="cl-list"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">📝 Observaciones Recientes</div></div>
+        <div class="card-body"><div id="obs-recent"></div></div>
+      </div>
+    </div>
+
+    <!-- Parámetros agua -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">💧 Calidad del Agua – Últimos Registros Guardavidas</div>
+      </div>
+      <div class="card-body"><div id="water-summary"></div></div>
+    </div>
+
+    <!-- Temperaturas SPA -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🌡️ Temperaturas SPA – Últimos Registros</div>
+      </div>
+      <div class="card-body"><div id="spa-temp-summary"></div></div>
+    </div>
+
+  </div><!-- /dashboard -->
+
+  <!-- ─── REGISTRAR ─── -->
+  <div class="panel" id="panel-registrar">
+
+    <div class="type-selector">
+      <button class="type-btn active" id="tb-gv"  onclick="setType('guardavidas')">🛟 Guardavidas – Alberca</button>
+      <button class="type-btn" id="tb-spa" onclick="setType('spa')">💆 SPA</button>
+      <button class="type-btn" id="tb-gym" onclick="setType('gimnasio')">🏋️ Gimnasio</button>
+    </div>
+
+    <!-- SPA subtype (damas / caballeros) -->
+    <div class="spa-subtype" id="spa-subtype">
+      <button class="spa-sub-btn active" id="sb-damas"      onclick="setSpaSubtype('damas')">👩 SPA Damas</button>
+      <button class="spa-sub-btn" id="sb-caballeros" onclick="setSpaSubtype('caballeros')">👨 SPA Caballeros</button>
+    </div>
+
+    <div class="grid-2">
+      <!-- Datos del turno -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">📋 Datos del Turno</div></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-field"><label>Fecha</label><input type="date" id="f-fecha"></div>
+            <div class="form-field"><label>Turno</label>
+              <select id="f-turno" onchange="onTurnoChange()">
+                <option value="">Selecciona…</option>
+                <option id="opt-matutino">Matutino (6:00 AM – 2:00 PM)</option>
+                <option id="opt-vespertino">Vespertino (2:00 PM – 10:00 PM)</option>
+                <option id="opt-apertura">Apertura (6:00 AM – 2:00 PM)</option>
+                <option id="opt-cierre">Cierre (2:00 PM – 10:00 PM)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Responsable</label><input type="text" id="f-resp" placeholder="Nombre completo"></div>
+            <div class="form-field"><label id="f-cert-lbl">Certificación</label><input type="text" id="f-cert" placeholder="No. de certificado"></div>
+          </div>
+          <div class="form-field"><label>Zona / Área</label><input type="text" id="f-zona" readonly style="cursor:default;color:var(--grey-light);"></div>
+          <div class="form-field"><label>Observaciones del turno</label><textarea id="f-obs" placeholder="Incidentes, novedades del turno…"></textarea></div>
+          <div class="photo-zone" id="photo-zone-main">
+            <span class="photo-zone-label">Fotos de evidencia del turno</span>
+            <div class="photo-zone-row">
+              <label class="photo-upload-btn" for="photo-input-main">+ Agregar foto</label>
+              <input type="file" id="photo-input-main" class="photo-upload-input" accept="image/*" multiple onchange="handlePhotos(this,'main')">
+              <span class="photo-file-name" id="photo-name-main">Sin fotos adjuntas</span>
+            </div>
+            <div class="photo-thumbs" id="photo-thumbs-main"></div>
+            <p class="photo-hint">Adjunta fotos de evidencia, incidentes o condicion del area.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+            <button class="btn btn-primary" id="btn-save" onclick="guardarRegistro()">💾 Guardar Registro</button>
+            <button class="btn btn-ghost" onclick="limpiarForm()">↺ Limpiar</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /grid-2 -->
+
+    <!-- INTERACTIVE CHECKLIST -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title" id="sec-card-title">✅ Checklist de Actividades</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="chk-progress-pct" id="chk-pct">0%</div>
+          <div style="width:120px;">
+            <div class="chk-progress-bar"><div class="chk-progress-fill" id="chk-pct-fill" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chk-legend">
+          <span style="font-size:11px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Toca para marcar:</span>
+          <div class="chk-legend-item"><div class="chk-legend-box empty"></div><span>Sin marcar</span></div>
+          <div class="chk-legend-item"><div class="chk-legend-box done">✕</div><span>Realizado</span></div>
+          <div class="chk-legend-item"><div class="chk-legend-box skip">–</div><span>No realizado</span></div>
+        </div>
+        <div id="chk-sections"></div>
+      </div>
+    </div>
+
+  </div><!-- /registrar -->
+
+  <!-- ─── TODOS LOS REGISTROS ─── -->
+  <div class="panel" id="panel-checklists">
+    <div class="filter-bar">
+      <select id="fl-type" onchange="renderChecklists()">
+        <option value="">Todos los tipos</option>
+        <option value="guardavidas">🛟 Guardavidas</option>
+        <option value="spa">💆 SPA</option>
+        <option value="gimnasio">🏋️ Gimnasio</option>
+      </select>
+      <select id="fl-status" onchange="renderChecklists()">
+        <option value="">Todos los estados</option>
+        <option value="completo">✅ Completos</option>
+        <option value="parcial">⚠️ Parciales</option>
+      </select>
+      <select id="fl-turno" onchange="renderChecklists()">
+        <option value="">Todos los turnos</option>
+        <option value="matutino">Matutino</option>
+        <option value="vespertino">Vespertino</option>
+        <option value="apertura">Apertura</option>
+        <option value="cierre">Cierre</option>
+      </select>
+      <input type="date" id="fl-from" onchange="renderChecklists()" title="Desde">
+      <input type="date" id="fl-to"   onchange="renderChecklists()" title="Hasta">
+      <button class="btn btn-ghost btn-sm" onclick="clearFilters()">✕ Limpiar</button>
+    </div>
+    <div id="cl-list" class="cl-list"></div>
+  </div>
+
+  <!-- ─── HISTÓRICO ─── -->
+  <div class="panel" id="panel-historico">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📅 Calendario</div>
+          <div class="cal-nav">
+            <button class="btn btn-ghost btn-icon" onclick="prevMonth()">‹</button>
+            <span class="cal-month-lbl" id="cal-lbl"></span>
+            <button class="btn btn-ghost btn-icon" onclick="nextMonth()">›</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="cal-grid" id="cal-labels"></div>
+          <div class="cal-grid" id="cal-grid"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">📈 Estadísticas del Mes</div></div>
+        <div class="card-body"><div id="hist-stats"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">🗂 Tabla Histórica – Últimos 2 Meses</div></div>
+      <div class="card-body tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Área</th><th>Turno</th><th>Responsable</th><th>Secciones</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="hist-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div><!-- /shell -->
+
+<!-- DETAIL OVERLAY -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeDetail()">
+  <div class="d-box">
+    <div class="d-header">
+      <div><div class="d-title" id="d-title"></div><div class="d-meta" id="d-meta"></div></div>
+      <button class="d-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="d-body" id="d-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  FIREBASE (compat – funciona con onclick normal)
+// ═══════════════════════════════════════════════
+firebase.initializeApp({
+  apiKey:"AIzaSyCyh1Vx5x1bLeJ5bVIVUJ465Lt1ac0pnDw",
+  authDomain:"dashboard-puertocancun.firebaseapp.com",
+  projectId:"dashboard-puertocancun",
+  storageBucket:"dashboard-puertocancun.firebasestorage.app",
+  messagingSenderId:"905576010789",
+  appId:"1:905576010789:web:03dfffc4ff1e79b7cf5bcc"
+});
+var db = firebase.firestore();
+var COL = 'checklists';
+var _cache = [];
+
+function setLoad(pct){
+  var b=document.getElementById('lbar');
+  b.style.width=pct+'%';
+  if(pct>=100) setTimeout(function(){b.style.width='0%';},700);
+}
+
+function fetchAll(cb){
+  setLoad(30);
+  document.getElementById('sb-status-txt').textContent='Cargando…';
+  db.collection(COL).orderBy('fecha','desc').get().then(function(snap){
+    _cache=snap.docs.map(function(d){var r=d.data();r._docId=d.id;return r;});
+    setLoad(100);
+    document.getElementById('sb-status-txt').textContent='Firebase conectado';
+    if(cb) cb();
+  }).catch(function(e){
+    setLoad(100);
+    document.getElementById('sb-status-txt').textContent='Error de conexión';
+    showToast('Firebase: '+e.message,true);
+    if(cb) cb();
+  });
+}
+
+function dbSave(record,cb){
+  setLoad(40);
+  db.collection(COL).add(record).then(function(ref){
+    record._docId=ref.id;
+    _cache.unshift(record);
+    setLoad(100);
+    if(cb) cb(true);
+  }).catch(function(e){
+    setLoad(100);
+    showToast('Error al guardar: '+e.message,true);
+    if(cb) cb(false);
+  });
+}
+
+function dbDelete(docId,cb){
+  setLoad(40);
+  db.collection(COL).doc(docId).delete().then(function(){
+    _cache=_cache.filter(function(r){return r._docId!==docId;});
+    setLoad(100);
+    if(cb) cb(true);
+  }).catch(function(e){
+    setLoad(100);
+    showToast('Error al eliminar: '+e.message,true);
+    if(cb) cb(false);
+  });
+}
+
+function getRecent(){
+  var cut=new Date();cut.setMonth(cut.getMonth()-2);
+  var s=cut.toISOString().split('T')[0];
+  return _cache.filter(function(r){return r.fecha>=s;});
+}
+
+// ═══════════════════════════════════════════════
+//  TEMPLATES — basados en los checklists reales
+// ═══════════════════════════════════════════════
+// ── ITEM DATA (extracted from real checklists) ──
+var ITEMS = {
+  guardavidas: [
+    { name: '1 · Seguridad', items: [
+      'Revisar botiquín de primeros auxilios (completo y vigente)',
+      'Verificar disponibilidad y estado de equipo de rescate (flotadores, tablas, silbato)',
+      'Inspeccionar accesos y salidas de emergencia libres de obstáculos',
+      'Confirmar señalización visible de normas y profundidad',
+      'Supervisar constantemente a los usuarios (mínimo cada 15 min recorrido visual completo)'
+    ]},
+    { name: '2 · Operativos', items: [
+      'Checar apertura y cierre de la alberca según horario establecido',
+      'Controlar aforo máximo permitido',
+      'Vigilar uso correcto de vestimenta y equipo de natación',
+      'Reportar desperfectos en instalaciones (escaleras, barandales, iluminación)',
+      'Coordinar limpieza de áreas húmedas (pisos, regaderas, baños) cada 2 horas',
+    ]},
+    { name: '3 · Parámetros de Calidad del Agua', items: [
+      { text: 'Medir y registrar temperatura del agua', param: 'Temperatura', unit: '°C', min: 24, max: 30 },
+      { text: 'Medir y registrar pH', param: 'pH', unit: '', min: 7.2, max: 7.6 },
+      { text: 'Medir y registrar cloro residual libre', param: 'Cloro libre', unit: 'ppm', min: 1, max: 3 },
+      'Confirmar funcionamiento de filtros y bombas',
+      'Reportar desviaciones de parámetros al área técnica',
+      'Documentar resultados en bitácora de calidad de agua'
+    ]},
+    { name: '4 · Cierre de Turno', items: [
+      'Entregar bitácora con registros completos',
+      'Informar incidencias relevantes al supervisor',
+      'Asegurar cierre de accesos y resguardo de equipo'
+    ]}
+  ],
+  spa: [
+    { name: '1 · Apertura (antes 6:00 AM)', turno: 'apertura', items: [
+      'Ingreso de personal a las 5:45 AM',
+      'Apertura general del spa a las 6:00 AM',
+      'Encendido de luces general del spa',
+      'Encendido automático de A/C a las 6:00 AM',
+      'Encender TV (programas deportivos) y PC',
+      'Encender máquina de hielo a las 6:00 AM'
+    ]},
+    { name: '2 · Equipos de Bienestar', turno: 'ambos', items: [
+      { text: 'Cuarto de Vapor — encendido y operativo', param: 'Vapor', unit: '°C', min: 40, max: 50 },
+      { text: 'Sauna — encendido y operativo', param: 'Sauna', unit: '°C', min: 70, max: 90 },
+      { text: 'Jacuzzi — hidromasaje operativo', param: 'Jacuzzi', unit: '°C', min: 36, max: 40 },
+      { text: 'Tina fría — operativa', param: 'Tina fría', unit: '°C', min: 10, max: 18 },
+      { text: 'Temperatura ambiente del área de spa', param: 'Ambiente spa', unit: '°C', min: 22, max: 26 },
+      'Revisión general: funcionamiento correcto de todas las áreas'
+    ]},
+    { name: '3 · Sistema de Audio', turno: 'apertura', items: [
+      'Encender el sistema de audio (arriba hacia abajo)',
+      'Conectar la tableta al sistema de audio',
+      'Reproducir la lista musical asignada',
+      'Verificar volumen adecuado en todas las zonas'
+    ]},
+    { name: '4 · Insumos y Materiales', turno: 'ambos', items: [
+      'Revisar inventario de bebidas',
+      'Mueble de toallas abastecido',
+      'Garrafones de agua disponibles',
+      'Stock de toallas limpias disponible',
+      'Verificar caducidades de cada producto'
+    ]},
+    { name: '5 · Limpieza General', turno: 'ambos', items: [
+      'Verificar que todas las áreas se encuentren limpias',
+      'Revisar que las jaboneras estén llenas',
+      'Revisar que las papeleras estén completas y con bolsa',
+      'Revisar coladeras — solicitar apoyo de limpieza si es necesario',
+      'Limpieza profunda: regaderas, tapas de escusado, llaves de lavamanos, coladeras'
+    ]},
+    { name: '6 · Gestión de Luces', turno: 'ambos', items: [
+      '10:30 AM — Apagar luces de la sala',
+      '6:00 PM — Encender sistema de iluminación vespertino',
+      'Verificar que todas las luminarias estén funcionando correctamente'
+    ]},
+    { name: '7 · Revisión de Turno', turno: 'ambos', items: [
+      'Realizar una segunda revisión completa de instalaciones',
+      'Revisar materiales e insumos — reponer si es necesario',
+      'Revisión de limpieza general en todas las áreas',
+      'Reemplazar toallas sucias por limpias'
+    ]},
+    { name: '8 · Cierre — Luces y Reabastecimiento', turno: 'cierre', items: [
+      'Verificar que todas las luces estén apagadas e interruptores abajo',
+      'Abastecer toallas limpias para el siguiente turno',
+      'A/C se apaga automáticamente a las 10:00 PM'
+    ]},
+    { name: '9 · Cierre — Audio y Equipos', turno: 'cierre', items: [
+      'Desactivar sistema de audio (apagar de abajo hacia arriba)',
+      'Desconectar la tableta del sistema',
+      'Verificar que tina fría y jacuzzi estén apagados',
+      'Verificar que todas las instalaciones (vapor, sauna, cascada) estén apagadas',
+      'TV y PC apagados'
+    ]},
+    { name: '10 · Seguridad y Lost & Found', turno: 'cierre', items: [
+      'Llamar a seguridad para cerrar el spa',
+      'Registrar artículos encontrados en la bitácora de Lost & Found',
+      'Asegurar todas las instalaciones antes de retirarse'
+    ]}
+  ],
+  gimnasio: [
+    { name: 'A · Apertura (antes 6:00 AM)', turno: 'apertura', items: [
+      'Ingreso a las instalaciones a las 5:50 AM',
+      'Encendido de luces: Activar interruptores del 1 al 7 (tablero A de bodega)',
+      'Encender sistema de audio de abajo hacia arriba',
+      'Conectar la tableta al sistema de audio',
+      'Reproducir la lista musical asignada',
+      'Verificar nivel adecuado de volumen',
+      'Encender TV y poner videos de gym',
+      'Revisar nivel de dispensador de agua (garrafones vacíos con encargado de bodega, proveedor: lunes, miércoles y viernes)',
+      'Revisar inventario de bebidas (pedidos: lunes, miércoles o viernes — entrega: martes, jueves y sábado)',
+      'Mueble de toallas abastecido',
+      'Garrafones de agua disponibles',
+      'Stock de toallas desinfectantes y vasos disponible',
+      'Limpieza general: Verificar limpieza del área (apoyo a limpieza: 11:00 AM y 5:00 PM)',
+      'Mancuernas colocadas en su rack',
+      'Discos organizados en el árbol de pesas',
+      'Bandas colgadas en sistema TRX',
+      'Bolas en rack TRX',
+      'No apagar máquinas de cardio'
+    ]},
+    { name: 'B · Gestión de Luces', turno: 'ambos', items: [
+      '10:30 AM — Apagar luces si no hay miembros (interruptores 1 al 7)',
+      '6:00 PM — Encender sistema de iluminación'
+    ]},
+    { name: 'C · Personal del Segundo Turno', turno: 'ambos', items: [
+      'Realizar segunda revisión completa de materiales e insumos',
+      'Revisión de limpieza general',
+      'Reemplazo de toallas sucias por limpias'
+    ]},
+    { name: 'D · Cierre', turno: 'cierre', items: [
+      'Verificar que todas las luces estén apagadas (interruptores abajo)',
+      'Abastecer toallas limpias para el siguiente turno',
+      'Apagar sistema de audio de arriba hacia abajo (3 botones)',
+      'Desconectar la tableta del sistema de audio',
+      'Anotar insumos a reponer y notificar al turno de apertura',
+      'Lost & Found: Registrar artículos en página del club y entregar a recepción',
+      'Llamar a seguridad para cerrar el gimnasio',
+      'A/C se apaga automáticamente a las 10:00 PM'
+    ]},
+    { name: 'E · Comentarios', turno: 'ambos', items: [
+      'Registrar comentarios, observaciones o novedades del turno'
+    ]}
+  ]
+};
+
+var TPL = {
+  guardavidas:{
+    label:'Guardavidas', icon:'🛟', certLbl:'Certificación',
+    defaultZona:'Alberca Semiolímpica',
+    turnos:['Matutino (6:00 AM \u2013 2:00 PM)','Vespertino (2:00 PM \u2013 10:00 PM)'],
+    sections:[
+      {name:'1 \u00b7 Seguridad',              total:5},
+      {name:'2 \u00b7 Operativos',             total:5},
+      {name:'3 \u00b7 Par\u00e1metros de Calidad del Agua', total:6},
+      {name:'4 \u00b7 Cierre de Turno',        total:3}
+    ],
+    params:[
+      {name:'Temperatura', unit:'\u00b0C', min:24, max:30},
+      {name:'pH',          unit:'',        min:7.2,max:7.6},
+      {name:'Cloro libre', unit:'ppm',     min:1,  max:3}
+    ]
+  },
+  gimnasio:{
+    label:'Gimnasio', icon:'🏋️', certLbl:'Firma / Clave',
+    defaultZona:'Gimnasio',
+    turnos:['Apertura (6:00 AM – 2:00 PM)','Cierre (2:00 PM – 10:00 PM)'],
+    sections:[
+      {name:'A · Apertura (antes 6:00 AM)', total:18},
+      {name:'B · Gestión de Luces',           total:2},
+      {name:'C · Personal del Segundo Turno', total:3},
+      {name:'D · Cierre',                    total:8},
+      {name:'E · Comentarios',                total:1}
+    ],
+    params:[]
+  },
+  spa:{
+    label:'SPA', icon:'\ud83d\udc86', certLbl:'Firma / Clave',
+    defaultZona:'SPA',
+    turnos:['Apertura (6:00 AM \u2013 2:00 PM)','Cierre (2:00 PM \u2013 10:00 PM)'],
+    sections:[
+      {name:'1 \u00b7 Apertura (antes 6:00 AM)',total:6},
+      {name:'2 \u00b7 Equipos de Bienestar',    total:6},
+      {name:'3 \u00b7 Sistema de Audio',         total:4},
+      {name:'4 \u00b7 Insumos y Materiales',     total:5},
+      {name:'5 \u00b7 Limpieza General',          total:5},
+      {name:'6 \u00b7 Gesti\u00f3n de Luces',    total:3},
+      {name:'7 \u00b7 Revisi\u00f3n de Turno',   total:4},
+      {name:'8 \u00b7 Cierre \u2014 Luces y Reabastecimiento',total:3},
+      {name:'9 \u00b7 Cierre \u2014 Audio y Equipos',         total:5},
+      {name:'10 \u00b7 Seguridad y Lost & Found',             total:3}
+    ],
+    params:[
+      {name:'Vapor',        unit:'\u00b0C',min:40,max:50},
+      {name:'Sauna',        unit:'\u00b0C',min:70,max:90},
+      {name:'Jacuzzi',      unit:'\u00b0C',min:36,max:40},
+      {name:'Tina fr\u00eda',unit:'\u00b0C',min:10,max:18},
+      {name:'Ambiente spa', unit:'\u00b0C',min:22,max:26}
+    ]
+  }
+};
+
+var curType    = 'guardavidas';
+var curSpaType = 'damas'; // damas | caballeros
+
+// ═══════════════════════════════════════════════
+//  NAV
+// ═══════════════════════════════════════════════
+var PANEL_TITLES={dashboard:'RESUMEN GENERAL',registrar:'NUEVO REGISTRO',checklists:'TODOS LOS REGISTROS',historico:'HIST\u00d3RICO'};
+
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  document.getElementById('panel-'+id).classList.add('active');
+  document.getElementById('panel-title').textContent=PANEL_TITLES[id]||id.toUpperCase();
+  var navMap={dashboard:'resumen',registrar:'registro',checklists:'todos',historico:'hist'};
+  document.querySelectorAll('.nav-item').forEach(function(n){
+    var t=n.textContent.trim().toLowerCase();
+    if(t.includes(navMap[id]||id)) n.classList.add('active');
+  });
+  if(id==='dashboard')  renderDashboard();
+  if(id==='checklists') renderChecklists();
+  if(id==='historico')  {renderCalendar();renderHistTable();}
+}
+
+function quickFilter(type){
+  showPanel('checklists');
+  document.getElementById('fl-type').value=type;
+  renderChecklists();
+}
+
+// ═══════════════════════════════════════════════
+//  FORM — TIPO
+// ═══════════════════════════════════════════════
+function setType(type){
+  curType=type;
+  document.getElementById('tb-gv').classList.toggle('active',type==='guardavidas');
+  document.getElementById('tb-spa').classList.toggle('active',type==='spa');
+  var gymBtn=document.getElementById('tb-gym');if(gymBtn)gymBtn.classList.toggle('active',type==='gimnasio');
+  document.getElementById('spa-subtype').classList.toggle('visible',type==='spa');
+
+  var tpl=TPL[type];
+  var sel=document.getElementById('f-turno');
+  sel.innerHTML='<option value="">Selecciona\u2026</option>';
+  tpl.turnos.forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o);});
+
+  document.getElementById('f-cert-lbl').textContent=tpl.certLbl;
+  document.getElementById('f-zona').value=type==='spa'?(curSpaType==='damas'?'SPA Damas':'SPA Caballeros'):tpl.defaultZona;
+  document.getElementById('par-card-title') && (document.getElementById('par-card-title').textContent=type==='guardavidas'?'\ud83d\udca7 Par\u00e1metros de Calidad del Agua':'\ud83c\udf21\ufe0f Temperaturas de Equipos');
+  document.getElementById('sec-card-title').textContent=type==='guardavidas'?'\u2705 Checklist Guardavidas \u2013 Alberca':'\u2705 Checklist SPA';
+
+  buildChkSections(type);
+}
+
+// ── BUILD INTERACTIVE CHECKLIST SECTIONS ──
+function buildChkSections(type){
+  var container=document.getElementById('chk-sections');
+  container.innerHTML='';
+  var secs=ITEMS[type];
+  secs.forEach(function(sec,si){
+    var div=document.createElement('div');
+    div.className='chk-section';
+    div.id='chk-sec-'+si;
+    div.dataset.turno=sec.turno||'ambos';
+
+    // Count items (some are objects with param)
+    var itemCount=sec.items.length;
+
+    div.innerHTML=
+      '<div class="chk-section-header" onclick="toggleChkSec('+si+')">'+
+        '<span class="chk-section-icon">'+getSectionIcon(si,type)+'</span>'+
+        '<span class="chk-section-title">'+esc(sec.name)+'</span>'+
+        (sec.turno&&sec.turno!=='ambos'?'<span class="turno-pill '+(sec.turno==='apertura'?'tp-apertura':'tp-cierre')+'">'+(sec.turno==='apertura'?'Apertura':'Cierre')+'</span>':'')+
+        '<span class="chk-section-badge" id="chk-badge-'+si+'">0/'+itemCount+'</span>'+
+        '<span class="chk-section-chevron">▼</span>'+
+      '</div>'+
+      '<div class="chk-section-body" id="chk-body-'+si+'"></div>';
+
+    container.appendChild(div);
+
+    var body=document.getElementById('chk-body-'+si);
+    sec.items.forEach(function(item,ii){
+      var isObj=typeof item==='object';
+      var text=isObj?item.text:item;
+      var itemDiv=document.createElement('div');
+      itemDiv.className='chk-item';
+      itemDiv.id='chk-item-'+si+'-'+ii;
+
+      var measHtml='';
+      if(isObj){
+        var safeId='meas-'+si+'-'+ii;
+        measHtml='<div class="chk-item-measure">'+
+          '<span class="chk-meas-lbl">'+esc(item.param)+':</span>'+
+          '<input type="number" step="0.1" placeholder="--" class="chk-meas-input" id="'+safeId+'"'+
+          ' data-min="'+item.min+'" data-max="'+item.max+'" data-param="'+esc(item.param)+'"'+
+          ' oninput="validateMeas(this)">'+
+          '<span class="chk-meas-unit">'+esc(item.unit)+'</span>'+
+          '<span class="chk-meas-range">'+item.min+'\u2013'+item.max+' '+esc(item.unit)+'</span>'+
+        '</div>';
+      }
+
+      itemDiv.innerHTML=
+        '<div class="chk-toggle" data-state="" onclick="toggleChkItem(this,'+si+','+ii+')" title="Toca para cambiar estado">'+
+          '<div class="chk-toggle-box"></div>'+
+        '</div>'+
+        '<div class="chk-item-content" style="flex:1;">'+
+          '<div class="chk-item-text">'+esc(text)+'</div>'+
+          measHtml+
+        '</div>';
+
+      body.appendChild(itemDiv);
+    });
+  });
+  if(type==='spa'){var tv=document.getElementById('f-turno').value.toLowerCase();var tk=tv.includes('apertura')?'apertura':tv.includes('cierre')?'cierre':'';filterSectionsByTurno(tk);}
+  updateChkProgress();
+}
+
+function getSectionIcon(i,type){
+  var gvIcons=['\ud83d\udee1\ufe0f','\u2699\ufe0f','\ud83d\udca7','\ud83d\udd12'];
+  var spaIcons=['\ud83c\udf05','\u2668\ufe0f','\ud83c\udfa7','\ud83e\uddf4','\ud83e\uddf9','\ud83d\udca1','\ud83d\udd04','\ud83c\udf19','\ud83d\udd07','\ud83d\udd12'];
+  var gymIcons=['\ud83d\udd13','\ud83d\udca1','\ud83d\udc65','\ud83d\udd12','\ud83d\udcac'];
+  var icons=type==='guardavidas'?gvIcons:type==='gimnasio'?gymIcons:spaIcons;
+  return icons[i]||'\ud83d\udccb';
+}
+
+function toggleChkSec(si){
+  var sec=document.getElementById('chk-sec-'+si);
+  sec.classList.toggle('collapsed');
+}
+
+function toggleChkItem(toggle,si,ii){
+  var states=['','done','skip'];
+  var labels={'':'','done':'X','\u2013':'-','skip':'\u2013'};
+  var cur=toggle.dataset.state||'';
+  var next=states[(states.indexOf(cur)+1)%states.length];
+  toggle.dataset.state=next;
+  toggle.querySelector('.chk-toggle-box').textContent=next==='done'?'X':next==='skip'?'\u2013':'';
+  var item=toggle.closest('.chk-item');
+  item.classList.remove('state-done','state-skip');
+  if(next) item.classList.add('state-'+next);
+  updateChkProgress();
+}
+
+function validateMeas(inp){
+  var v=parseFloat(inp.value),mn=parseFloat(inp.dataset.min),mx=parseFloat(inp.dataset.max);
+  inp.classList.remove('in-range','out-range');
+  if(inp.value!==''&&!isNaN(v)) inp.classList.add(v>=mn&&v<=mx?'in-range':'out-range');
+}
+
+// ── TURNO FILTER ──
+function onTurnoChange(){
+  if(curType!=='spa'&&curType!=='gimnasio') return;
+  var tv=document.getElementById('f-turno').value.toLowerCase();
+  var tk=tv.includes('apertura')?'apertura':tv.includes('cierre')?'cierre':'';
+  filterSectionsByTurno(tk);
+}
+
+function filterSectionsByTurno(tk){
+  var notice=document.getElementById('turno-filter-notice');
+  var noticeText=document.getElementById('turno-filter-text');
+  var secs=document.querySelectorAll('#chk-sections .chk-section');
+  var hidden=0;
+  secs.forEach(function(sec){
+    var st=sec.dataset.turno||'ambos';
+    var show=!tk||st==='ambos'||st===tk;
+    sec.style.display=show?'':'none';
+    if(!show) hidden++;
+  });
+  if(hidden>0&&tk){
+    notice.classList.add('visible');
+    var lbl=tk==='apertura'?'Apertura':'Cierre';
+    noticeText.textContent=lbl+' — mostrando '+(secs.length-hidden)+' de '+secs.length+' secciones relevantes';
+  } else {
+    notice.classList.remove('visible');
+  }
+  updateChkProgress();
+}
+
+function showAllSections(){
+  document.querySelectorAll('#chk-sections .chk-section').forEach(function(s){s.style.display='';});
+  document.getElementById('turno-filter-notice').classList.remove('visible');
+  updateChkProgress();
+}
+
+// ── PHOTO UPLOAD ──
+var photoStore={main:[]};
+
+function handlePhotos(input,key){
+  var files=Array.from(input.files);
+  if(!files.length) return;
+  if(!photoStore[key]) photoStore[key]=[];
+  var zone=document.getElementById('photo-zone-main');
+  var thumbs=document.getElementById('photo-thumbs-main');
+  var nameEl=document.getElementById('photo-name-main');
+  files.forEach(function(file){
+    if(!file.type.startsWith('image/')) return;
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var canvas=document.createElement('canvas');
+        var mw=800,mh=800,w=img.width,h=img.height;
+        if(w>mw){h=Math.round(h*mw/w);w=mw;}
+        if(h>mh){w=Math.round(w*mh/h);h=mh;}
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        var dataURL=canvas.toDataURL('image/jpeg',0.78);
+        var id=Date.now()+'_'+Math.floor(Math.random()*9999);
+        photoStore[key].push({id:id,dataURL:dataURL,name:file.name});
+        var wrap=document.createElement('div');
+        wrap.className='photo-thumb';
+        wrap.dataset.photoId=id;
+        var imgEl=document.createElement('img');
+        imgEl.src=dataURL; imgEl.alt=file.name;
+        var del=document.createElement('button');
+        del.className='photo-thumb-del'; del.textContent='x';
+        del.setAttribute('data-key',key); del.setAttribute('data-id',id);
+        del.onclick=function(){removePhoto(this.getAttribute('data-key'),this.getAttribute('data-id'));};
+        wrap.appendChild(imgEl); wrap.appendChild(del); thumbs.appendChild(wrap);
+        zone.classList.add('has-photos');
+        var cnt=photoStore[key].length;
+        nameEl.textContent=cnt+(cnt===1?' foto adjunta':' fotos adjuntas');
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+
+function removePhoto(key,id){
+  if(!photoStore[key]) return;
+  photoStore[key]=photoStore[key].filter(function(p){return p.id!=id;});
+  var thumbs=document.getElementById('photo-thumbs-main');
+  var el=thumbs?thumbs.querySelector('[data-photo-id="'+id+'"]'):null;
+  if(el) el.remove();
+  var cnt=photoStore[key].length;
+  var nameEl=document.getElementById('photo-name-main');
+  var zone=document.getElementById('photo-zone-main');
+  if(nameEl) nameEl.textContent=cnt===0?'Sin fotos adjuntas':cnt+(cnt===1?' foto adjunta':' fotos adjuntas');
+  if(zone) zone.classList.toggle('has-photos',cnt>0);
+}
+
+function clearPhotos(){
+  photoStore={main:[]};
+  var thumbs=document.getElementById('photo-thumbs-main');
+  if(thumbs) thumbs.innerHTML='';
+  var nameEl=document.getElementById('photo-name-main');
+  if(nameEl) nameEl.textContent='Sin fotos adjuntas';
+  var zone=document.getElementById('photo-zone-main');
+  if(zone) zone.classList.remove('has-photos');
+}
+
+
+function updateChkProgress(){
+  var allItems=document.querySelectorAll('#chk-sections .chk-item');
+  var marked=0;
+  allItems.forEach(function(item){
+    var t=item.querySelector('.chk-toggle');
+    if(t&&t.dataset.state!=='') marked++;
+  });
+  var total=allItems.length;
+  var pct=total>0?Math.round(marked/total*100):0;
+  document.getElementById('chk-pct').textContent=pct+'%';
+  document.getElementById('chk-pct-fill').style.width=pct+'%';
+
+  // Update per-section badges
+  document.querySelectorAll('.chk-section').forEach(function(sec,si){
+    var secItems=sec.querySelectorAll('.chk-item');
+    var secMarked=0;
+    secItems.forEach(function(item){
+      var t=item.querySelector('.chk-toggle');
+      if(t&&t.dataset.state!=='') secMarked++;
+    });
+    var badge=sec.querySelector('.chk-section-badge');
+    if(badge) badge.textContent=secMarked+'/'+secItems.length;
+    sec.classList.toggle('sec-complete',secItems.length>0&&secMarked===secItems.length);
+  });
+}
+
+function getChkData(){
+  // Collect all states and measurements from the interactive checklist
+  var sections=[];
+  var params={};
+  var totI=0,totD=0,totS=0;
+
+  document.querySelectorAll('#chk-sections .chk-section').forEach(function(secEl,si){
+    var titleEl=secEl.querySelector('.chk-section-title');
+    var name=titleEl?titleEl.textContent.trim():'Sección '+(si+1);
+    var items=secEl.querySelectorAll('.chk-item');
+    var done=0,skip=0;
+    items.forEach(function(item){
+      var t=item.querySelector('.chk-toggle');
+      var st=t?t.dataset.state:'';
+      if(st==='done') done++;
+      if(st==='skip') skip++;
+    });
+    sections.push({name:name,total:items.length,done:done,skip:skip});
+    totI+=items.length; totD+=done; totS+=skip;
+  });
+
+  // Collect measurements
+  document.querySelectorAll('#chk-sections .chk-meas-input').forEach(function(inp){
+    if(inp.value!==''&&!isNaN(parseFloat(inp.value))){
+      params[inp.dataset.param]=parseFloat(inp.value);
+    }
+  });
+
+  return {sections:sections,params:params,totI:totI,totD:totD,totS:totS};
+}
+
+function setSpaSubtype(sub){
+  curSpaType=sub;
+  document.getElementById('sb-damas').classList.toggle('active',sub==='damas');
+  document.getElementById('sb-caballeros').classList.toggle('active',sub==='caballeros');
+  document.getElementById('f-zona').value=sub==='damas'?'SPA Damas':'SPA Caballeros';
+}
+
+function validatePar(inp){
+  var v=parseFloat(inp.value),mn=parseFloat(inp.dataset.min),mx=parseFloat(inp.dataset.max);
+  var sid=inp.dataset.pid.replace(/[^a-z0-9]/gi,'_');
+  var el=document.getElementById('ps-'+sid); if(!el)return;
+  if(inp.value===''||isNaN(v)){el.textContent='\u2014';el.className='ps none';}
+  else if(v>=mn&&v<=mx){el.textContent='\u2713 OK';el.className='ps ok';}
+  else{el.textContent='\u26a0 Fuera';el.className='ps bad';}
+}
+
+function limpiarForm(){
+  document.getElementById('f-resp').value='';
+  document.getElementById('f-cert').value='';
+  document.getElementById('f-obs').value='';
+  TPL[curType].sections.forEach(function(sec,i){
+    var d=document.getElementById('sd-'+i); if(d) d.value=sec.total;
+    var s=document.getElementById('ss-'+i); if(s) s.value=0;
+  });
+  TPL[curType].params.forEach(function(p){
+    var sid=p.name.replace(/[^a-z0-9]/gi,'_');
+    var inp=document.getElementById('pp-'+sid); if(inp) inp.value='';
+    var el=document.getElementById('ps-'+sid); if(el){el.textContent='\u2014';el.className='ps none';}
+  });
+  clearPhotos();
+  var tn2=document.getElementById('turno-filter-notice');if(tn2)tn2.classList.remove('visible');
+}
+
+function guardarRegistro(){
+  var fecha=document.getElementById('f-fecha').value;
+  var turno=document.getElementById('f-turno').value;
+  var resp=document.getElementById('f-resp').value.trim();
+  if(!fecha||!turno||!resp){showToast('Completa fecha, turno y responsable',true);return;}
+
+  var chkData=getChkData();
+  var sections=chkData.sections, params=chkData.params;
+  var totI=chkData.totI, totD=chkData.totD, totS=chkData.totS;
+
+  var marked=totD+totS;
+  var pct=totI>0?Math.round((marked/totI)*100):0;
+  var photos=(photoStore.main||[]).map(function(p){return{id:p.id,dataURL:p.dataURL,name:p.name};});
+  var _now=new Date();
+  var horaCompletado=_now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',hour12:true});
+  var record={
+    id:_now.getTime(), type:curType,
+    spaSubtype:curType==='spa'?curSpaType:null,
+    fecha:fecha, turno:turno, responsable:resp,
+    cert:document.getElementById('f-cert').value.trim(),
+    zona:document.getElementById('f-zona').value.trim(),
+    obs:document.getElementById('f-obs').value.trim(),
+    horaCompletado:horaCompletado,
+    photos:photos,
+    sections:sections, params:params,
+    totalItems:totI, totalDone:totD, totalSkip:totS,
+    pct:pct, status:pct===100?'completo':'parcial'
+  };
+
+  var btn=document.getElementById('btn-save');
+  btn.disabled=true; btn.textContent='\u23f3 Guardando\u2026';
+  dbSave(record,function(ok){
+    btn.disabled=false; btn.textContent='\ud83d\udcbe Guardar Registro';
+    if(ok){
+      showToast('\u2705 Guardado en Firebase');
+      limpiarForm();
+      document.getElementById('f-fecha').valueAsDate=new Date();
+      updateCount();
+      showPanel('checklists');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════
+function renderDashboard(){
+  var recs=getRecent();
+  var todayStr=new Date().toISOString().split('T')[0];
+  var ok=recs.filter(function(r){return r.status==='completo';}).length;
+  var par=recs.filter(function(r){return r.status==='parcial';}).length;
+  var gv=recs.filter(function(r){return r.type==='guardavidas';}).length;
+  var spa=recs.filter(function(r){return r.type==='spa';}).length;
+  var gvToday=recs.filter(function(r){return r.type==='guardavidas'&&r.fecha===todayStr;}).length;
+  var spaToday=recs.filter(function(r){return r.type==='spa'&&r.fecha===todayStr;}).length;
+  var avg=recs.length>0?Math.round(recs.reduce(function(a,r){return a+r.pct;},0)/recs.length):0;
+
+  document.getElementById('kpi-total').textContent=recs.length;
+  document.getElementById('kpi-ok').textContent=ok;
+  document.getElementById('kpi-ok-pct').textContent=recs.length>0?Math.round(ok/recs.length*100)+'% del total':'—';
+  document.getElementById('kpi-par').textContent=par;
+  document.getElementById('kpi-avg').textContent=avg+'%';
+  document.getElementById('kpi-type-split').textContent=gv+' GV · '+spa+' SPA';
+  document.getElementById('kpi-gv').textContent=gv;
+  document.getElementById('kpi-gv-today').textContent=gvToday;
+  document.getElementById('kpi-spa').textContent=spa;
+  document.getElementById('kpi-spa-today').textContent=spaToday;
+
+  var spaD=recs.filter(function(r){return r.type==='spa'&&r.spaSubtype==='damas';}).length;
+  var spaC=recs.filter(function(r){return r.type==='spa'&&r.spaSubtype==='caballeros';}).length;
+  document.getElementById('kpi-spa-sub').textContent=spaD+' Damas · '+spaC+' Caballeros';
+
+  // Recent list
+  var rl=document.getElementById('recent-list');
+  var recent=recs.slice(0,5);
+  rl.innerHTML=recent.length===0?emptyHtml('Sin registros','Agrega tu primer checklist'):
+    recent.map(function(r){return clCardHtml(r,true);}).join('');
+
+  // Obs recent
+  var ol=document.getElementById('obs-recent');
+  var withObs=recs.filter(function(r){return r.obs&&r.obs.trim();}).slice(0,4);
+  ol.innerHTML=withObs.length===0?emptyHtml('Sin observaciones',''):
+    withObs.map(function(r){
+      var tpl=TPL[r.type]||{icon:'\ud83d\udccb'};
+      return '<div class="obs-card"><div class="obs-card-meta">'+r.fecha+' · '+tpl.icon+' '+esc(r.turno)+' · '+esc(r.responsable)+'</div>'+
+        '<div class="obs-card-text">'+esc(r.obs)+'</div></div>';
+    }).join('');
+
+  // Water quality summary
+  renderWaterSummary(recs);
+  renderSpaTempSummary(recs);
+}
+
+var GV_PARAMS=['Temperatura','pH','Cloro libre'];
+var GV_CFG={'Temperatura':{min:24,max:30,unit:'\u00b0C'},'pH':{min:7.2,max:7.6,unit:''},'Cloro libre':{min:1,max:3,unit:'ppm'}};
+var SPA_PARAMS=['Vapor','Sauna','Jacuzzi','Tina fr\u00eda','Ambiente spa'];
+var SPA_CFG={'Vapor':{min:40,max:50,unit:'\u00b0C'},'Sauna':{min:70,max:90,unit:'\u00b0C'},'Jacuzzi':{min:36,max:40,unit:'\u00b0C'},'Tina fr\u00eda':{min:10,max:18,unit:'\u00b0C'},'Ambiente spa':{min:22,max:26,unit:'\u00b0C'}};
+
+function renderWaterSummary(recs){
+  var ws=document.getElementById('water-summary');
+  var gvRecs=recs.filter(function(r){return r.type==='guardavidas'&&r.params&&Object.keys(r.params).length>0;}).slice(0,5);
+  if(gvRecs.length===0){ws.innerHTML=emptyHtml('Sin registros de parámetros','Los datos aparecerán al registrar checklists de Guardavidas');return;}
+  var h='<table class="tbl"><thead><tr><th>Fecha</th><th>Turno</th><th>Responsable</th>';
+  GV_PARAMS.forEach(function(p){h+='<th>'+p+'</th>';});
+  h+='</tr></thead><tbody>';
+  gvRecs.forEach(function(r){
+    var tp=turnoPill(r.turno);
+    h+='<tr><td style="font-family:DM Mono,monospace;font-size:11px;color:var(--grey-light);">'+r.fecha+'</td><td>'+tp+'</td><td style="font-size:12px;">'+esc(r.responsable)+'</td>';
+    GV_PARAMS.forEach(function(p){
+      var v=r.params[p]; if(v===undefined){h+='<td class="s-none">\u2014</td>';return;}
+      var cfg=GV_CFG[p]; var ok=v>=cfg.min&&v<=cfg.max;
+      h+='<td class="'+(ok?'s-ok':'s-bad')+'">'+v+(cfg.unit?' '+cfg.unit:'')+'</td>';
+    });
+    h+='</tr>';
+  });
+  ws.innerHTML=h+'</tbody></table>';
+}
+
+function renderSpaTempSummary(recs){
+  var ss=document.getElementById('spa-temp-summary');
+  var spaRecs=recs.filter(function(r){return r.type==='spa'&&r.params&&Object.keys(r.params).length>0;}).slice(0,5);
+  if(spaRecs.length===0){ss.innerHTML=emptyHtml('Sin registros de temperaturas SPA','Aparecerán al registrar checklists de SPA');return;}
+  var h='<table class="tbl"><thead><tr><th>Fecha</th><th>Área</th><th>Responsable</th>';
+  SPA_PARAMS.forEach(function(p){h+='<th>'+p+'</th>';});
+  h+='</tr></thead><tbody>';
+  spaRecs.forEach(function(r){
+    h+='<tr><td style="font-family:DM Mono,monospace;font-size:11px;color:var(--grey-light);">'+r.fecha+'</td>'+
+      '<td><span class="badge b-purple">'+(r.spaSubtype==='damas'?'\ud83d\udc69 Damas':r.spaSubtype==='caballeros'?'\ud83d\udc68 Caballeros':esc(r.zona||'SPA'))+'</span></td>'+
+      '<td style="font-size:12px;">'+esc(r.responsable)+'</td>';
+    SPA_PARAMS.forEach(function(p){
+      var v=r.params[p]; if(v===undefined){h+='<td class="s-none">\u2014</td>';return;}
+      var cfg=SPA_CFG[p]; var ok=v>=cfg.min&&v<=cfg.max;
+      h+='<td class="'+(ok?'s-ok':'s-bad')+'">'+v+' \u00b0C</td>';
+    });
+    h+='</tr>';
+  });
+  ss.innerHTML=h+'</tbody></table>';
+}
+
+// ═══════════════════════════════════════════════
+//  CL CARD
+// ═══════════════════════════════════════════════
+function clCardHtml(r,compact){
+  var tpl=TPL[r.type]||{icon:'\ud83d\udccb',label:r.type};
+  var rc=r.pct===100?'#10b981':r.pct>=70?'#f59e0b':'#f43f5e';
+  var rad=20,circ=2*Math.PI*rad,dash=(r.pct/100)*circ;
+  var sb=r.status==='completo'?'<span class="badge b-green">\u2713 Completo</span>':'<span class="badge b-amber">\u26a0 Parcial '+r.pct+'%</span>';
+  var tb=r.type==='guardavidas'?'<span class="badge b-blue">Guardavidas</span>':'<span class="badge b-purple">SPA'+(r.spaSubtype?' '+r.spaSubtype:'')+'</span>';
+  var tp=turnoPill(r.turno);
+  var delBtn=compact?'':'<button class="btn btn-danger btn-icon" onclick="event.stopPropagation();delByLocalId('+r.id+')">🗑</button>';
+  return '<div class="cl-card" onclick="openDetail('+r.id+')">'+
+    '<div class="cl-icon">'+tpl.icon+'</div>'+
+    '<div class="cl-info">'+
+      '<div class="cl-title">'+tpl.label+(r.zona?' \u2013 '+esc(r.zona):'')+'</div>'+
+      '<div class="cl-meta">'+r.fecha+(r.horaCompletado?' \u00b7 <span style="color:var(--green);font-size:10px;">'+r.horaCompletado+'</span>':'')+ ' \u00b7 '+esc(r.responsable)+'</div>'+
+      '<div class="cl-badges">'+sb+tb+tp+'</div>'+
+    '</div>'+
+    '<div class="cl-ring"><div class="ring-wrap">'+
+      '<svg width="48" height="48" viewBox="0 0 48 48">'+
+        '<circle cx="24" cy="24" r="'+rad+'" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="4"/>'+
+        '<circle cx="24" cy="24" r="'+rad+'" fill="none" stroke="'+rc+'" stroke-width="4" stroke-dasharray="'+dash+' '+circ+'" stroke-linecap="round"/>'+
+      '</svg>'+
+      '<div class="ring-num" style="color:'+rc+'">'+r.pct+'%</div></div></div>'+
+    (compact?'':'<div class="cl-actions">'+delBtn+'</div>')+
+  '</div>';
+}
+
+function delByLocalId(localId){
+  var rec=_cache.find(function(r){return r.id==localId;});
+  if(!rec||!rec._docId){showToast('No encontrado',true);return;}
+  if(!confirm('\u00bfEliminar este registro?')) return;
+  dbDelete(rec._docId,function(ok){
+    if(ok){showToast('Registro eliminado');renderChecklists();updateCount();}
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  CHECKLISTS PANEL
+// ═══════════════════════════════════════════════
+function renderChecklists(){
+  var recs=getRecent();
+  var type  =document.getElementById('fl-type').value;
+  var status=document.getElementById('fl-status').value;
+  var turno =document.getElementById('fl-turno').value.toLowerCase();
+  var from  =document.getElementById('fl-from').value;
+  var to    =document.getElementById('fl-to').value;
+  if(type)   recs=recs.filter(function(r){return r.type===type;});
+  if(status) recs=recs.filter(function(r){return r.status===status;});
+  if(turno)  recs=recs.filter(function(r){return r.turno&&r.turno.toLowerCase().includes(turno);});
+  if(from)   recs=recs.filter(function(r){return r.fecha>=from;});
+  if(to)     recs=recs.filter(function(r){return r.fecha<=to;});
+  var el=document.getElementById('cl-list');
+  el.innerHTML=recs.length===0?emptyHtml('Sin registros','Ajusta los filtros o agrega uno nuevo'):
+    recs.map(function(r){return clCardHtml(r,false);}).join('');
+}
+
+function clearFilters(){
+  ['fl-type','fl-status','fl-turno','fl-from','fl-to'].forEach(function(id){document.getElementById(id).value='';});
+  renderChecklists();
+}
+
+// ═══════════════════════════════════════════════
+//  DETAIL
+// ═══════════════════════════════════════════════
+function openDetail(localId){
+  var r=_cache.find(function(x){return x.id==localId;});
+  if(!r) return;
+  var tpl=TPL[r.type]||{icon:'\ud83d\udccb',label:r.type,params:[]};
+  document.getElementById('d-title').textContent=tpl.icon+' '+tpl.label+(r.zona?' \u2013 '+r.zona:'')+(r.spaSubtype?' ('+r.spaSubtype+')':'');
+  var _dMeta=r.fecha+(r.horaCompletado?' \u00b7 Completado: '+r.horaCompletado:'')+' \u00b7 '+r.turno+' \u00b7 '+r.responsable+(r.cert?' \u00b7 '+r.cert:'');
+  document.getElementById('d-meta').textContent=_dMeta;
+
+  var b='';
+
+  // Sections table
+  b+='<div class="d-section-title">\ud83d\udcca Secciones</div>';
+  b+='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Secci\u00f3n</th><th style="text-align:center">Total</th><th style="text-align:center">\u2715 Realizado</th><th style="text-align:center">\u2013 No real.</th><th style="text-align:center">Sin marcar</th><th>%</th><th>Estado</th></tr></thead><tbody>';
+  var totI=0,totD=0,totS=0;
+  r.sections.forEach(function(sec){
+    var m=sec.done+sec.skip,pct=sec.total>0?Math.round(m/sec.total*100):0;
+    totI+=sec.total;totD+=sec.done;totS+=sec.skip;
+    b+='<tr><td style="color:var(--white);font-weight:600;font-size:12px;">'+esc(sec.name)+'</td>'+
+      '<td style="text-align:center;font-family:DM Mono,monospace;">'+sec.total+'</td>'+
+      '<td style="text-align:center;color:var(--green);font-family:DM Mono,monospace;font-weight:700;">'+sec.done+'</td>'+
+      '<td style="text-align:center;color:var(--rose);font-family:DM Mono,monospace;font-weight:700;">'+sec.skip+'</td>'+
+      '<td style="text-align:center;color:var(--grey);font-family:DM Mono,monospace;">'+(sec.total-m)+'</td>'+
+      '<td><div style="font-family:DM Mono,monospace;font-size:11px;margin-bottom:3px;">'+pct+'%</div>'+
+        '<div class="pct-bar"><div class="pct-fill '+(m===sec.total?'full':'part')+'" style="width:'+pct+'%"></div></div></td>'+
+      '<td><span class="badge '+(m===sec.total?'b-green':'b-amber')+'">'+(m===sec.total?'\u2713 Completo':'Parcial')+'</span></td></tr>';
+  });
+  var totM=totD+totS,totPct=totI>0?Math.round(totM/totI*100):0;
+  b+='<tr style="font-weight:700;border-top:2px solid var(--border);background:rgba(37,99,235,0.06);">'+
+    '<td style="color:var(--cyan-soft);">TOTAL</td>'+
+    '<td style="text-align:center;font-family:DM Mono,monospace;">'+totI+'</td>'+
+    '<td style="text-align:center;color:var(--green);font-family:DM Mono,monospace;">'+totD+'</td>'+
+    '<td style="text-align:center;color:var(--rose);font-family:DM Mono,monospace;">'+totS+'</td>'+
+    '<td style="text-align:center;color:var(--grey);font-family:DM Mono,monospace;">'+(totI-totM)+'</td>'+
+    '<td style="font-family:DM Mono,monospace;color:var(--cyan);">'+totPct+'%</td>'+
+    '<td><span class="badge '+(totPct===100?'b-green':'b-amber')+'">'+(totPct===100?'\u2713 Completo':'Parcial')+'</span></td></tr>';
+  b+='</tbody></table></div>';
+
+  // Params
+  if(r.params&&Object.keys(r.params).length>0){
+    var isGV=r.type==='guardavidas';
+    var parCfg=isGV?GV_CFG:SPA_CFG;
+    b+='<div class="d-section-title">'+(isGV?'\ud83d\udca7 Par\u00e1metros de Agua':'\ud83c\udf21\ufe0f Temperaturas de Equipos')+'</div>';
+
+    // Show as nice cards
+    b+='<div class="param-cards">';
+    Object.keys(r.params).forEach(function(param){
+      var v=r.params[param]; var cfg=parCfg[param];
+      var ok=cfg?(v>=cfg.min&&v<=cfg.max):true;
+      b+='<div class="param-card '+(ok?'ok':'bad')+'">'+
+        '<div class="param-card-name">'+esc(param)+'</div>'+
+        '<div class="param-card-val">'+v+'</div>'+
+        '<div class="param-card-range">'+(cfg?cfg.min+' \u2013 '+cfg.max+' '+cfg.unit:'')+'</div>'+
+        '<div class="param-card-st">'+(ok?'\u2713 OK':'\u26a0 Fuera')+'</div>'+
+      '</div>';
+    });
+    b+='</div>';
+  }
+
+  if(r.photos&&r.photos.length>0){
+    b+='<div class="d-section-title">Fotos adjuntas ('+r.photos.length+')</div>';
+    b+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">';
+    r.photos.forEach(function(p){b+='<img src="'+p.dataURL+'" onclick="openPhotoFull(this)" style="width:110px;height:110px;object-fit:cover;border-radius:10px;border:2px solid rgba(6,182,212,0.3);cursor:zoom-in;">';});
+    b+='</div>';
+  }
+  // Observations
+  if(r.obs){
+    b+='<div class="d-section-title">\ud83d\udcdd Observaciones</div>';
+    b+='<div class="obs-box">'+esc(r.obs)+'</div>';
+  }
+
+  document.getElementById('d-body').innerHTML=b;
+  document.getElementById('overlay').classList.add('open');
+}
+
+function openPhotoFull(img){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.93);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+  ov.onclick=function(){document.body.removeChild(ov);};
+  var big=document.createElement('img');
+  big.src=img.src;
+  big.style.cssText='max-width:92vw;max-height:92vh;border-radius:12px;';
+  ov.appendChild(big);
+  document.body.appendChild(ov);
+}
+function closeDetail(){document.getElementById('overlay').classList.remove('open');}
+
+// ═══════════════════════════════════════════════
+//  HISTÓRICO
+// ═══════════════════════════════════════════════
+var calY=new Date().getFullYear(), calM=new Date().getMonth();
+var MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var DAYS=['Dom','Lun','Mar','Mi\u00e9','Jue','Vie','S\u00e1b'];
+
+function prevMonth(){calM--;if(calM<0){calM=11;calY--;}renderCalendar();}
+function nextMonth(){calM++;if(calM>11){calM=0;calY++;}renderCalendar();}
+
+function renderCalendar(){
+  document.getElementById('cal-lbl').textContent=MONTHS[calM]+' '+calY;
+  var labEl=document.getElementById('cal-labels'); labEl.innerHTML='';
+  DAYS.forEach(function(d){var e=document.createElement('div');e.className='cal-lbl';e.textContent=d;labEl.appendChild(e);});
+
+  var byDate={};
+  _cache.forEach(function(r){if(!byDate[r.fecha])byDate[r.fecha]=[];byDate[r.fecha].push(r);});
+
+  var grid=document.getElementById('cal-grid'); grid.innerHTML='';
+  var firstDay=new Date(calY,calM,1).getDay();
+  var daysInMonth=new Date(calY,calM+1,0).getDate();
+  var todayStr=new Date().toISOString().split('T')[0];
+
+  for(var e=0;e<firstDay;e++){var emp=document.createElement('div');emp.className='cal-day cal-empty';grid.appendChild(emp);}
+  for(var d=1;d<=daysInMonth;d++){
+    var ds=calY+'-'+String(calM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var dr=byDate[ds]||[];
+    var cell=document.createElement('div');
+    cell.className='cal-day'+(ds===todayStr?' today':'')+(dr.length>0?' clickable':'');
+    var dots=dr.map(function(r){return '<div class="cal-dot '+(r.status==='completo'?'cd-g':r.pct>=70?'cd-a':'cd-r')+'" title="'+(TPL[r.type]?TPL[r.type].label:r.type)+' \u2013 '+r.responsable+'"></div>';}).join('');
+    cell.innerHTML='<div class="cal-day-num">'+d+'</div><div class="cal-dots">'+dots+'</div>';
+    if(dr.length>0){
+      (function(recs){cell.addEventListener('click',function(){
+        if(recs.length===1)openDetail(recs[0].id);
+        else{showPanel('checklists');document.getElementById('fl-from').value=recs[0].fecha;document.getElementById('fl-to').value=recs[0].fecha;renderChecklists();}
+      });})(dr);
+    }
+    grid.appendChild(cell);
+  }
+  renderHistStats();
+}
+
+function renderHistStats(){
+  var recs=_cache.filter(function(r){var d=new Date(r.fecha);return d.getFullYear()===calY&&d.getMonth()===calM;});
+  var el=document.getElementById('hist-stats');
+  if(recs.length===0){el.innerHTML=emptyHtml('Sin registros en este mes','');return;}
+  var ok=recs.filter(function(r){return r.status==='completo';}).length;
+  var gv=recs.filter(function(r){return r.type==='guardavidas';}).length;
+  var spa=recs.filter(function(r){return r.type==='spa';}).length;
+  var avg=Math.round(recs.reduce(function(a,r){return a+r.pct;},0)/recs.length);
+  var items=[
+    {l:'Registros en el mes',v:recs.length,c:'var(--cyan)'},
+    {l:'Completos (100%)',v:ok,c:'var(--green)'},
+    {l:'Parciales',v:recs.length-ok,c:'var(--amber)'},
+    {l:'Guardavidas',v:gv,c:'var(--blue-light)'},
+    {l:'SPA',v:spa,c:'var(--purple-soft)'},
+    {l:'Promedio cumplimiento',v:avg+'%',c:avg===100?'var(--green)':'var(--amber)'}
+  ];
+  el.innerHTML=items.map(function(i){
+    return '<div class="stat-row"><span class="stat-lbl">'+i.l+'</span><span class="stat-val" style="color:'+i.c+'">'+i.v+'</span></div>';
+  }).join('');
+}
+
+function renderHistTable(){
+  var cut=new Date();cut.setMonth(cut.getMonth()-2);var cs=cut.toISOString().split('T')[0];
+  var recs=_cache.filter(function(r){return r.fecha>=cs;});
+  var tb=document.getElementById('hist-tbody');
+  if(recs.length===0){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--grey);padding:20px;">Sin registros en los \u00faltimos 2 meses</td></tr>';return;}
+  tb.innerHTML=recs.map(function(r){
+    var tpl=TPL[r.type]||{icon:'\ud83d\udccb',label:r.type};
+    return '<tr>'+
+      '<td style="font-family:DM Mono,monospace;font-size:11px;color:var(--grey-light);">'+r.fecha+(r.horaCompletado?'<br><span style="color:var(--green);font-size:10px;">'+r.horaCompletado+'</span>':'')+'</td>'+
+      '<td>'+tpl.icon+' '+tpl.label+'</td>'+
+      '<td style="font-size:11px;">'+esc(r.zona||'—')+'</td>'+
+      '<td>'+turnoPill(r.turno)+'</td>'+
+      '<td style="font-size:12px;">'+esc(r.responsable)+'</td>'+
+      '<td style="font-family:DM Mono,monospace;font-size:11px;">'+r.sections.length+' secc.</td>'+
+      '<td><span class="badge '+(r.status==='completo'?'b-green':'b-amber')+'">'+(r.status==='completo'?'\u2713 ':'\u26a0 ')+r.pct+'%</span></td>'+
+      '<td style="display:flex;gap:5px;">'+
+        '<button class="btn btn-ghost btn-sm" onclick="openDetail('+r.id+')">Ver</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="delByLocalId('+r.id+')">🗑</button>'+
+      '</td></tr>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  DEMO DATA
+// ═══════════════════════════════════════════════
+function loadDemoData(){
+  if(_cache.length>0){showToast('Ya existen registros');return;}
+  var today=new Date().toISOString().split('T')[0];
+  var yday=new Date(Date.now()-86400000).toISOString().split('T')[0];
+  var demos=[
+    {id:Date.now()+1,type:'guardavidas',spaSubtype:null,fecha:today,turno:'Matutino (6:00 AM \u2013 2:00 PM)',responsable:'Carlos Mendoza',cert:'GV-2024-001',zona:'Alberca Semiol\u00edmpica',obs:'Separadores de canales de nado sucios',
+     sections:[{name:'1 \u00b7 Seguridad',total:7,done:7,skip:0},{name:'2 \u00b7 Operativos',total:7,done:7,skip:0},{name:'3 \u00b7 Par\u00e1metros de Calidad del Agua',total:7,done:7,skip:0},{name:'4 \u00b7 Cierre de Turno',total:3,done:3,skip:0}],
+     params:{'Temperatura':29,'pH':7.3,'Cloro libre':2},totalItems:24,totalDone:24,totalSkip:0,pct:100,status:'completo'},
+    {id:Date.now()+2,type:'spa',spaSubtype:'damas',fecha:today,turno:'Apertura (6:00 AM \u2013 2:00 PM)',responsable:'Ana Garc\u00eda',cert:'SPA-002',zona:'SPA Damas',obs:'Se repar\u00f3 las luces led de la terraza',
+     sections:[{name:'1 \u00b7 Apertura',total:6,done:5,skip:1},{name:'2 \u00b7 Equipos de Bienestar',total:6,done:6,skip:0},{name:'3 \u00b7 Sistema de Audio',total:4,done:4,skip:0},{name:'4 \u00b7 Insumos y Materiales',total:5,done:5,skip:0},{name:'5 \u00b7 Limpieza General',total:5,done:5,skip:0},{name:'6 \u00b7 Gesti\u00f3n de Luces',total:3,done:3,skip:0},{name:'7 \u00b7 Revisi\u00f3n de Turno',total:4,done:4,skip:0},{name:'8 \u00b7 Cierre \u2014 Luces',total:3,done:3,skip:0},{name:'9 \u00b7 Cierre \u2014 Audio',total:5,done:5,skip:0},{name:'10 \u00b7 Seguridad',total:3,done:3,skip:0}],
+     params:{'Vapor':49,'Sauna':90,'Jacuzzi':40,'Tina fr\u00eda':17,'Ambiente spa':24},totalItems:44,totalDone:43,totalSkip:1,pct:100,status:'completo'},
+    {id:Date.now()+3,type:'guardavidas',spaSubtype:null,fecha:yday,turno:'Vespertino (2:00 PM \u2013 10:00 PM)',responsable:'Luis Ram\u00edrez',cert:'GV-2024-002',zona:'Alberca Semiol\u00edmpica',obs:'',
+     sections:[{name:'1 \u00b7 Seguridad',total:7,done:7,skip:0},{name:'2 \u00b7 Operativos',total:7,done:6,skip:0},{name:'3 \u00b7 Par\u00e1metros de Calidad del Agua',total:7,done:7,skip:0},{name:'4 \u00b7 Cierre de Turno',total:3,done:3,skip:0}],
+     params:{'Temperatura':28,'pH':7.4,'Cloro libre':1.8},totalItems:24,totalDone:23,totalSkip:0,pct:96,status:'parcial'},
+    {id:Date.now()+4,type:'spa',spaSubtype:'caballeros',fecha:yday,turno:'Cierre (2:00 PM \u2013 10:00 PM)',responsable:'Marco L\u00f3pez',cert:'SPA-007',zona:'SPA Caballeros',obs:'',
+     sections:[{name:'1 \u00b7 Apertura',total:6,done:6,skip:0},{name:'2 \u00b7 Equipos de Bienestar',total:6,done:6,skip:0},{name:'3 \u00b7 Sistema de Audio',total:4,done:4,skip:0},{name:'4 \u00b7 Insumos y Materiales',total:5,done:5,skip:0},{name:'5 \u00b7 Limpieza General',total:5,done:5,skip:0},{name:'6 \u00b7 Gesti\u00f3n de Luces',total:3,done:3,skip:0},{name:'7 \u00b7 Revisi\u00f3n de Turno',total:4,done:4,skip:0},{name:'8 \u00b7 Cierre \u2014 Luces',total:3,done:3,skip:0},{name:'9 \u00b7 Cierre \u2014 Audio',total:5,done:5,skip:0},{name:'10 \u00b7 Seguridad',total:3,done:3,skip:0}],
+     params:{'Vapor':48,'Sauna':85,'Jacuzzi':38,'Tina fr\u00eda':15,'Ambiente spa':25},totalItems:44,totalDone:44,totalSkip:0,pct:100,status:'completo'}
+  ];
+  showToast('\u23f3 Cargando datos de ejemplo\u2026');
+  var cnt=0;
+  demos.forEach(function(demo){
+    dbSave(demo,function(ok){
+      cnt++;
+      if(cnt===demos.length){renderDashboard();updateCount();showToast('\u2705 '+demos.length+' registros de ejemplo cargados');}
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════
+function esc(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function emptyHtml(t,s){return '<div class="empty"><div class="empty-icon">\ud83d\udccb</div><div class="empty-text">'+t+'</div>'+(s?'<div class="empty-sub">'+s+'</div>':'')+'</div>';}
+function updateCount(){document.getElementById('sb-count').textContent=getRecent().length+' registros (2 meses)';}
+function showToast(msg,err){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className=err?'err':'';
+  t.style.display='block';
+  clearTimeout(t._to);
+  t._to=setTimeout(function(){t.style.display='none';},3200);
+}
+function turnoPill(turno){
+  if(!turno)return '';
+  var t=turno.toLowerCase();
+  var cls=t.includes('apertura')?'tp-apertura':t.includes('cierre')?'tp-cierre':t.includes('matutino')?'tp-matutino':'tp-vespertino';
+  var icon=t.includes('apertura')?'\ud83c\udf05':t.includes('cierre')?'\ud83c\udf19':t.includes('matutino')?'\u2600\ufe0f':'\ud83c\udf19';
+  return '<span class="turno-pill '+cls+'">'+icon+' '+esc(turno.split('(')[0].trim())+'</span>';
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+document.getElementById('date-now').textContent=
+  new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+document.getElementById('f-fecha').valueAsDate=new Date();
+setType('guardavidas');
+
+showToast('\u23f3 Conectando a Firebase\u2026');
+fetchAll(function(){
+  renderDashboard();
+  renderCalendar();
+  updateCount();
+  showToast('\u2705 Conectado \u2014 '+getRecent().length+' registros cargados');
+});
+</script>
+</body>
+</html>

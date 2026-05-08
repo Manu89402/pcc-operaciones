@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Test iOS Login</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background:#0a0a0a; color:#fff; padding:30px 20px; }
+  h2 { color:#06b6d4; margin-bottom:20px; }
+  .box { background:#1a1a1a; border:1px solid #333; border-radius:10px; padding:14px; margin-bottom:10px; font-size:14px; }
+  .ok  { border-color:#10b981; color:#6ee7b7; }
+  .err { border-color:#f43f5e; color:#fda4af; }
+  input { width:100%; padding:12px; border-radius:8px; border:1px solid #444; background:#222; color:#fff; font-size:16px; margin-bottom:10px; box-sizing:border-box; -webkit-appearance:none; }
+  button { width:100%; padding:14px; border-radius:8px; border:none; background:#e8a11a; color:#000; font-size:16px; font-weight:700; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; margin-bottom:10px; }
+  .log { background:#111; border:1px solid #333; border-radius:8px; padding:12px; font-size:12px; font-family:monospace; min-height:100px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<h2>🔍 Test Login iOS — PCC</h2>
+
+<div class="box" id="env"></div>
+
+<input type="text" id="u" placeholder="Usuario" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+<input type="password" id="p" placeholder="Contraseña" autocomplete="off">
+<button ontouchend="probarLogin(event)" onclick="probarLogin(event)">Probar Login</button>
+<button ontouchend="probarLocalStorage(event)" onclick="probarLocalStorage(event)" style="background:#333;color:#fff;margin-top:5px;">Probar localStorage</button>
+<button ontouchend="probarFirebase(event)" onclick="probarFirebase(event)" style="background:#0369a1;color:#fff;margin-top:5px;">Probar Firebase</button>
+
+<div class="log" id="log">Esperando acción...</div>
+
+<script>
+var log = document.getElementById('log');
+function addLog(msg) {
+  log.textContent += '\n' + new Date().toLocaleTimeString() + ': ' + msg;
+}
+
+// Show environment info
+var env = document.getElementById('env');
+env.textContent = 'Navegador: ' + navigator.userAgent.substring(0, 80) +
+  '\niOS: ' + /iPhone|iPad|iPod/.test(navigator.userAgent) +
+  '\nSafari: ' + /Safari/.test(navigator.userAgent) +
+  '\nURL: ' + window.location.href;
+
+var USERS = [
+  {username:'admin',       pass:'admin2024', activo:true},
+  {username:'restaurante', pass:'rest724@',  activo:true},
+  {username:'lounge',      pass:'loun327!',  activo:true},
+  {username:'spa',         pass:'spa434!',   activo:true},
+  {username:'gimnasio',    pass:'gimn637@',  activo:true}
+];
+
+function probarLogin(e) {
+  if(e) e.preventDefault();
+  addLog('--- Iniciando prueba de login ---');
+  try {
+    var u = document.getElementById('u').value.trim().toLowerCase();
+    var p = document.getElementById('p').value;
+    addLog('Usuario ingresado: "' + u + '"');
+    addLog('Pass ingresada: "' + (p ? '****' : 'vacía') + '"');
+    if(!u || !p) { addLog('ERROR: Campos vacíos'); return; }
+    var found = USERS.find(function(x){ return x.username === u && x.pass === p && x.activo; });
+    if(found) {
+      addLog('✅ LOGIN EXITOSO para: ' + u);
+      document.getElementById('env').className = 'box ok';
+    } else {
+      addLog('❌ Credenciales incorrectas');
+      addLog('Usuarios disponibles: ' + USERS.map(function(x){return x.username;}).join(', '));
+      document.getElementById('env').className = 'box err';
+    }
+  } catch(err) {
+    addLog('ERROR JS: ' + err.message);
+    addLog('Stack: ' + err.stack);
+  }
+}
+
+function probarLocalStorage(e) {
+  if(e) e.preventDefault();
+  addLog('--- Probando localStorage ---');
+  try {
+    localStorage.setItem('test_ios', '123');
+    var val = localStorage.getItem('test_ios');
+    addLog(val === '123' ? '✅ localStorage funciona' : '❌ localStorage devuelve valor incorrecto');
+    localStorage.removeItem('test_ios');
+  } catch(err) {
+    addLog('❌ localStorage bloqueado: ' + err.message);
+  }
+}
+
+function probarFirebase(e) {
+  if(e) e.preventDefault();
+  addLog('--- Probando Firebase REST ---');
+  var url = 'https://firestore.googleapis.com/v1/projects/dashboard-puertocancun/databases/(default)/documents/test_conexion?key=AIzaSyCyh1Vx5x1bLeJ5bVIVUJ465Lt1ac0pnDw&pageSize=1';
+  fetch(url)
+    .then(function(r){ addLog('Status HTTP: ' + r.status); return r.json(); })
+    .then(function(d){ addLog(d.error ? '❌ Firebase error: ' + d.error.message : '✅ Firebase conectado OK'); })
+    .catch(function(err){ addLog('❌ Fetch error: ' + err.message); });
+}
+
+addLog('Página cargada. Dispositivo iOS: ' + /iPhone|iPad|iPod/.test(navigator.userAgent));
+</script>
+</body>
+</html>
